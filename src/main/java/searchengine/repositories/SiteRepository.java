@@ -9,7 +9,6 @@ import java.util.List;
 
 @Repository
 public interface SiteRepository extends JpaRepository<Site, Integer> {
-    @Query(value = "select url from sites",
-           nativeQuery = true)
-    List<String> findAllUrl ();
+    Site findByUrl (String url);
+
 }

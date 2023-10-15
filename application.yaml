@@ -1,0 +1,27 @@
+server:
+  port: 8080
+
+spring:
+  datasource:
+    username: root
+    password: VasileV532
+    url: jdbc:mysql://localhost:3306/search_engine?useSSL=false&requireSSL=false&allowPublicKeyRetrieval=true
+  jpa:
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.MySQL8Dialect
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+
+
+indexing-settings:
+  sites:
+#    - url: https://www.evoulve.com/
+#      name: https://www.evoulve.com/
+#    - url: http://www.framenoir.com/
+#      name: http://www.framenoir.com/.Ru
+#    - url: https://dombulgakova.ru/
+#      name: Дом Булгакова
+    - url: https://playback.ru/
+      name: PlayBack.Ru

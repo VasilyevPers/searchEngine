@@ -12,4 +12,5 @@ public interface PageRepository extends JpaRepository<Page, Integer> {
     @Query(value = "select path from pages where site_id=?",
            nativeQuery = true)
     List<String> findAllPathBySiteId (int siteId);
+    Page findByPath (String path);
 }

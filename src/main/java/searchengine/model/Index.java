@@ -14,7 +14,7 @@ public class Index {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private int id;
 
-    @Column(name = "page_id", nullable = false)
+    @Column(name = "page_id", nullable = false, updatable = false, insertable = false)
     private int pageId;
 
     @Column(name = "lemma_id", nullable = false)
@@ -22,4 +22,8 @@ public class Index {
 
     @Column(name = "`rank`", columnDefinition = "FLOAT", nullable = false)
     private float rank;
+
+//    @ManyToOne(fetch = FetchType.LAZY)
+//    private Page page;
+
 }

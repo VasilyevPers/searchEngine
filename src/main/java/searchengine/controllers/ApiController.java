@@ -1,11 +1,7 @@
 package searchengine.controllers;
 
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 import searchengine.dto.statistics.ResponseMainRequest;
 import searchengine.dto.statistics.StatisticsResponse;
 import searchengine.services.SiteIndexing;
@@ -38,9 +34,9 @@ public class ApiController {
         return ResponseEntity.ok(siteIndexing.stopIndexing());
     }
 
-    @PostMapping("/indexPage")
-    public ResponseEntity<ResponseMainRequest> indexPage () {
-        return ResponseEntity.ok(siteIndexing.indexPage())
+    @PostMapping(value = "/indexPage")
+    public ResponseEntity<ResponseMainRequest> indexPage (@RequestParam String path) {
+        return ResponseEntity.ok(siteIndexing.indexPage(path));
     }
 
 
