@@ -35,7 +35,7 @@ public class ApiController {
     }
 
     @PostMapping(value = "/indexPage")
-    public ResponseEntity<ResponseMainRequest> indexPage (@RequestParam String path) {
+    public ResponseEntity<ResponseMainRequest> indexPage (@RequestBody String path) {
         return ResponseEntity.ok(siteIndexing.indexPage(path));
     }
 

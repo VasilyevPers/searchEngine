@@ -1,4 +1,4 @@
-package searchengine.utils;
+package searchengine.utils.lemmatization;
 
 import org.apache.lucene.morphology.LuceneMorphology;
 import org.apache.lucene.morphology.english.EnglishLuceneMorphology;
@@ -10,21 +10,22 @@ import java.util.*;
 public class Lemmatization {
     private final LuceneMorphology rusLuceneMorph;
     private final LuceneMorphology enLuceneMorph;
-    private final static String[] PARTICLES_NAMES = new String[]{"СОЮЗ", "ПРЕДЛ", "МЕЖД", "CONJ", "ARTICLE", "PART", "ADVERB"};
+    private final static String[] PARTICLES_NAMES = new String[]{" СОЮЗ", " ПРЕДЛ", " МЕЖД"," ЧАСТ", " МС-П", " ПРЕДК", " ИНФИНИТИВ", " МС", "CONJ", "ARTICLE", "PART", "ADVERB"};
 
     public Lemmatization () throws IOException {
         rusLuceneMorph = new RussianLuceneMorphology();
         enLuceneMorph = new EnglishLuceneMorphology();
     }
 
-    protected Map<String, Integer> collectLemmas (String htmlCode) {
+    public final Map<String, Integer> collectLemmas (String htmlCode) {
         String text = parseHTML(htmlCode);
         String[] wordList = listSeparation(text);
         Map<String, Integer> lemmas = new HashMap<>();
         for (String word : wordList) {
-            if (word.isBlank()) continue;
+            if (word.isBlank() || word.length() < 3) continue;
 
             LuceneMorphology luceneMorphology = isLanguageSelection(word);
+            if (luceneMorphology == null) continue;
 
             List<String> wordBaseForm = luceneMorphology.getMorphInfo(word);
             if (commonWords(wordBaseForm)) continue;
@@ -41,14 +42,21 @@ public class Lemmatization {
     }
 
     private LuceneMorphology isLanguageSelection (String word) {
-        return word.matches("([а-я])+") ? rusLuceneMorph : enLuceneMorph;
+        int wordLength = word.length();
+        if (word.matches("[а-я]" + "{" + wordLength + "}"))
+            return rusLuceneMorph;
+
+        if (word.matches("[a-z]" + "{" + wordLength + "}"))
+            return enLuceneMorph;
+
+        return null;
     }
     private boolean commonWords(List<String> wordBaseForms) {
         return wordBaseForms.stream().anyMatch(this::hasParticleProperty);
     }
     private boolean hasParticleProperty(String wordBase) {
         for (String property : PARTICLES_NAMES) {
-            if (wordBase.equals(property)) {
+            if (wordBase.contains(property)) {
                 return true;
             }
         }

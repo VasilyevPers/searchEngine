@@ -3,12 +3,13 @@ package searchengine.services;
 import lombok.Getter;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import searchengine.config.SiteConfig;
 import searchengine.dto.statistics.ResponseMainRequest;
 import searchengine.model.*;
 import searchengine.config.SitesList;
-import searchengine.utils.GeneralMethods;
-import searchengine.utils.IndexingPage;
-import searchengine.utils.IndexingSite;
+import searchengine.utils.conections.ConnectionUtils;
+import searchengine.utils.indexing.IndexingPage;
+import searchengine.utils.indexing.IndexingSite;
 import java.time.LocalDateTime;
 import java.util.*;
 import java.util.concurrent.*;
@@ -17,15 +18,15 @@ import java.util.concurrent.atomic.AtomicBoolean;
 @Service
 public class SiteIndexingImpl implements SiteIndexing {
     @Autowired
-    private final AllRepositories ALL_REPOSITORIES = new AllRepositories();
+    private AllRepositories allRepositories = new AllRepositories();
     @Autowired
-    private final SitesList ALL_SITES_FOR_INDEXING = new SitesList();
+    private SitesList allSitesForIndexing = new SitesList();
+    private ConnectionUtils connectionUtils = new ConnectionUtils();
     private ExecutorService service;
     private ResponseMainRequest responseRequest;
     @Getter
     private static AtomicBoolean stopIndexing = new AtomicBoolean();
     private List<Future<?>> taskList = new ArrayList<>();
-    public SiteIndexingImpl () {}
 
     @Override
     public ResponseMainRequest fullIndexingSite() {
@@ -36,16 +37,16 @@ public class SiteIndexingImpl implements SiteIndexing {
             return responseRequest;
         }
         service = Executors.newCachedThreadPool();
-        ALL_REPOSITORIES.getSiteRepository().deleteAll();
-        for (searchengine.config.Site siteForIndexing : ALL_SITES_FOR_INDEXING.getSites()) {
+        allRepositories.getSiteRepository().deleteAll();
+        for (SiteConfig siteForIndexing : allSitesForIndexing.getSites()) {
             searchengine.model.Site startSite = new searchengine.model.Site();
             startSite.setStatusTime(LocalDateTime.now());
             startSite.setName(siteForIndexing.getName());
-            startSite.setUrl(new GeneralMethods().linkCorrection(siteForIndexing.getUrl()));
+            startSite.setUrl(connectionUtils.isCorrectsTheLink(siteForIndexing.getUrl()));
             startSite.setStatus(StatusIndexing.INDEXING);
-            ALL_REPOSITORIES.getSiteRepository().save(startSite);
+            allRepositories.getSiteRepository().save(startSite);
 
-            createAndRunTasks(ALL_REPOSITORIES, startSite, startSite.getUrl());
+            createAndRunTasks(allRepositories, startSite, startSite.getUrl());
         }
         responseRequest.setResult(true);
         return responseRequest;
@@ -57,7 +58,7 @@ public class SiteIndexingImpl implements SiteIndexing {
                 startSite.setStatus(StatusIndexing.INDEXED);
                 startSite.setStatusTime(LocalDateTime.now());
                 allRepositories.getSiteRepository().save(startSite);
-            } catch (RuntimeException e) {
+            } catch (Exception e) {
                 startSite.setStatusTime(LocalDateTime.now());
                 startSite.setStatus(StatusIndexing.FAILED);
                 startSite.setLastError(e.getMessage());
@@ -98,17 +99,15 @@ public class SiteIndexingImpl implements SiteIndexing {
     @Override
     public ResponseMainRequest indexPage (String path) {
         responseRequest = new ResponseMainRequest();
-        for (searchengine.config.Site site : ALL_SITES_FOR_INDEXING.getSites()) {
-            IndexingPage indexingPage = new IndexingPage(ALL_REPOSITORIES, site, path);
-            if (indexingPage.isResultError()) continue;
-            if (indexingPage.isCodeError()) {
-                responseRequest.setError("Данная страница не доступна");
-                return responseRequest;
+        for (SiteConfig site : allSitesForIndexing.getSites()) {
+            if (!connectionUtils.isCheckAffiliationSite(site.getUrl(), path)){
+                continue;
             }
+            new IndexingPage(allRepositories).indexPage(site, path);
             responseRequest.setResult(true);
             return responseRequest;
         }
-        responseRequest.setError("Данная страница находится за пределами сайтов," +
+        responseRequest.setError("Данная страница находится за пределами сайтов, " +
                 "указанных в конфигурационном файле");
         return responseRequest;
     }

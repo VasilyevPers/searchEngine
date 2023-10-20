@@ -37,7 +37,7 @@ public class Page {
     @JoinColumn(name = "site_id", referencedColumnName = "id")
     private Site site;
 
-//    @OneToMany(fetch = FetchType.LAZY, cascade = CascadeType.ALL, orphanRemoval = true)
-//    @JoinColumn(name = "page_id", referencedColumnName = "id")
-//    private List<searchengine.model.Index> indexList = new ArrayList<>();
+    @OneToMany(fetch = FetchType.LAZY, cascade = CascadeType.REMOVE, orphanRemoval = true)
+    @JoinColumn(name = "page_id", referencedColumnName = "id")
+    private List<searchengine.model.Index> indexList = new ArrayList<>();
 }

@@ -35,16 +35,10 @@ public class Site {
     @Column(columnDefinition = "VARCHAR(255)", nullable = false)
     private String name;
 
-    @OneToMany(fetch = FetchType.EAGER, cascade = CascadeType.REMOVE, orphanRemoval = true, mappedBy = "site")
+    @OneToMany(fetch = FetchType.LAZY, cascade = CascadeType.REMOVE, orphanRemoval = true, mappedBy = "site")
     private List<Page> pages = new ArrayList<>();
 
-    @Override
-    public String toString() {
-        return "id = " + id +
-                ", status = " + status +
-                ", statusTime = " + statusTime +
-                ", lastError = " + lastError +
-                ", url = " + url +
-                ", name = " + name;
-    }
+    @OneToMany(fetch = FetchType.LAZY, cascade = CascadeType.REFRESH, orphanRemoval = true, mappedBy = "site")
+    private List<Lemma> lemmasList = new ArrayList<>();
+
 }
