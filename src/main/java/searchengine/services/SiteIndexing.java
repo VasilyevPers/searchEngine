@@ -1,5 +1,5 @@
 package searchengine.services;
-import searchengine.dto.statistics.ResponseMainRequest;
+import searchengine.dto.responseRequest.ResponseMainRequest;
 
 public interface SiteIndexing {
      ResponseMainRequest fullIndexingSite();

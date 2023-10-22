@@ -11,4 +11,8 @@ public interface LemmaRepository extends JpaRepository<Lemma, Integer> {
     @Override
     @Query(value = "insert into entity on duplicate key update frequency = frequency + 1", nativeQuery = true)
     <S extends Lemma> S save(S entity);
+
+    @Query(value = "SELECT SUM(`frequency`) FROM lemmas where site_id = ?",
+    nativeQuery = true)
+    Integer countLemmaInSite (int siteId);
 }

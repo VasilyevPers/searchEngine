@@ -25,7 +25,7 @@ public class IndexingPage {
 
     public final void indexPage (SiteConfig siteConfig, String path) {
         Map<String, List<Index>> indexList = new HashMap<>();
-        path = connectionUtils.isCorrectsTheLink(path);
+        path = connectionUtils.correctsTheLink(path);
         Site site = allRepositories.getSiteRepository().findByUrl(siteConfig.getUrl());
         if (site == null) {
             site = new Site();
@@ -35,10 +35,10 @@ public class IndexingPage {
             site.setUrl(siteConfig.getUrl());
             site.setStatusTime(LocalDateTime.now());
         }
-        Page page = isSearchPageInBD(path);
+        Page page = searchPageInBD(path);
         try {
             if (page == null) {
-                page = isCreatePage(site, path);
+                page = createPage(site, path);
             }
             createLemmaAndIndex.createLemmaAndIndex(page, indexList);
             site.setStatus(StatusIndexing.INDEXED);
@@ -51,7 +51,7 @@ public class IndexingPage {
         }
     }
 
-    private Page isSearchPageInBD(String path) {
+    private Page searchPageInBD(String path) {
         Page page = allRepositories.getPageRepository().findByPath(path);
 
         if (page == null) {
@@ -65,10 +65,10 @@ public class IndexingPage {
         return page;
     }
 
-    private Page isCreatePage(Site site, String path) throws IOException {
+    private Page createPage(Site site, String path) throws IOException {
         Page pageForReindexing = new Page();
         pageForReindexing.setSite(site);
-        pageForReindexing.setCode(connectionUtils.isRequestResponseCode(path));
+        pageForReindexing.setCode(connectionUtils.requestResponseCode(path));
         pageForReindexing.setContent(Jsoup.connect(path).get().html());
         pageForReindexing.setPath(path);
 

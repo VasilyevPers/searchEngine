@@ -15,10 +15,10 @@ public class Lemma {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private int id;
 
-    @Column(name = "site_id", nullable = false, updatable = false, insertable = false, unique = true)
+    @Column(name = "site_id", nullable = false, updatable = false, insertable = false)
     private int siteId;
 
-    @Column(columnDefinition = "VARCHAR(255)", nullable = false, unique = true)
+    @Column(columnDefinition = "VARCHAR(255)", nullable = false)
     private String lemma;
 
     @Column(nullable = false)

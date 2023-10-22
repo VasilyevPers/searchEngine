@@ -19,16 +19,16 @@ public class Lemmatization {
 
     public final Map<String, Integer> collectLemmas (String htmlCode) {
         String text = parseHTML(htmlCode);
-        String[] wordList = listSeparation(text);
+        String[] wordList = listSeparating(text);
         Map<String, Integer> lemmas = new HashMap<>();
         for (String word : wordList) {
             if (word.isBlank() || word.length() < 3) continue;
 
-            LuceneMorphology luceneMorphology = isLanguageSelection(word);
+            LuceneMorphology luceneMorphology = languageSelection(word);
             if (luceneMorphology == null) continue;
 
             List<String> wordBaseForm = luceneMorphology.getMorphInfo(word);
-            if (commonWords(wordBaseForm)) continue;
+            if (isChecksWordType(wordBaseForm)) continue;
 
             List<String> normalForm = luceneMorphology.getNormalForms(word);
             if (normalForm.isEmpty()) continue;
@@ -41,7 +41,7 @@ public class Lemmatization {
         return lemmas;
     }
 
-    private LuceneMorphology isLanguageSelection (String word) {
+    private LuceneMorphology languageSelection(String word) {
         int wordLength = word.length();
         if (word.matches("[а-я]" + "{" + wordLength + "}"))
             return rusLuceneMorph;
@@ -51,7 +51,7 @@ public class Lemmatization {
 
         return null;
     }
-    private boolean commonWords(List<String> wordBaseForms) {
+    private boolean isChecksWordType(List<String> wordBaseForms) {
         return wordBaseForms.stream().anyMatch(this::hasParticleProperty);
     }
     private boolean hasParticleProperty(String wordBase) {
@@ -63,7 +63,7 @@ public class Lemmatization {
         return false;
     }
 
-    private String[] listSeparation (String text) {
+    private String[] listSeparating(String text) {
         return text.toLowerCase(Locale.ROOT)
                 .replaceAll("[^а-яa-z\\s]", " ")
                 .trim()

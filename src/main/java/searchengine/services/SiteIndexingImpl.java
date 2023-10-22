@@ -4,7 +4,7 @@ import lombok.Getter;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import searchengine.config.SiteConfig;
-import searchengine.dto.statistics.ResponseMainRequest;
+import searchengine.dto.responseRequest.ResponseMainRequest;
 import searchengine.model.*;
 import searchengine.config.SitesList;
 import searchengine.utils.conections.ConnectionUtils;
@@ -32,7 +32,7 @@ public class SiteIndexingImpl implements SiteIndexing {
     public ResponseMainRequest fullIndexingSite() {
         stopIndexing.set(false);
         responseRequest = new ResponseMainRequest();
-        if (!isIndexingStatus()) {
+        if (!isCheckIndexingStatus()) {
             responseRequest.setError("Индексация уже запущена");
             return responseRequest;
         }
@@ -42,7 +42,7 @@ public class SiteIndexingImpl implements SiteIndexing {
             searchengine.model.Site startSite = new searchengine.model.Site();
             startSite.setStatusTime(LocalDateTime.now());
             startSite.setName(siteForIndexing.getName());
-            startSite.setUrl(connectionUtils.isCorrectsTheLink(siteForIndexing.getUrl()));
+            startSite.setUrl(connectionUtils.correctsTheLink(siteForIndexing.getUrl()));
             startSite.setStatus(StatusIndexing.INDEXING);
             allRepositories.getSiteRepository().save(startSite);
 
@@ -72,14 +72,14 @@ public class SiteIndexingImpl implements SiteIndexing {
     @Override
     public ResponseMainRequest stopIndexing() {
         responseRequest = new ResponseMainRequest();
-        if (taskList.isEmpty() || isIndexingStatus()) {
+        if (taskList.isEmpty() || isCheckIndexingStatus()) {
             responseRequest.setError("Индексация не запущена");
             return responseRequest;
         }
         service.shutdownNow();
         stopIndexing.set(true);
         responseRequest.setResult(true);
-        while (!isIndexingStatus()) {
+        while (!isCheckIndexingStatus()) {
             try {
                 Thread.sleep(100);
             } catch (InterruptedException e) {
@@ -88,7 +88,7 @@ public class SiteIndexingImpl implements SiteIndexing {
         }
         return responseRequest;
     }
-    private boolean isIndexingStatus () {
+    private boolean isCheckIndexingStatus() {
         boolean allDone = true;
         for (Future<?> task : taskList) {
             allDone &= task.isDone();

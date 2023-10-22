@@ -30,7 +30,7 @@ public class IndexingSite extends RecursiveAction {
     public IndexingSite(AllRepositories allRepositories, Site site, String absLinkForIndexing) {
         this.allRepositories = allRepositories;
         this.site = site;
-        this.linkForIndexing = connectionUtils.isCorrectsTheLink(absLinkForIndexing);
+        this.linkForIndexing = connectionUtils.correctsTheLink(absLinkForIndexing);
     }
 
     @Override
@@ -51,7 +51,7 @@ public class IndexingSite extends RecursiveAction {
                 if (elementsOnThePage.containsKey(pagePath) || allPathList.contains(pagePath)) continue;
                 if (!connectionUtils.isCheckAffiliationSite(site.getUrl(), absUrl) || connectionUtils.isRemovesUnnecessaryLinks(pagePath)) continue;
                 Page pageForSave = new Page();
-                pageForSave.setCode(connectionUtils.isRequestResponseCode(absUrl));
+                pageForSave.setCode(connectionUtils.requestResponseCode(absUrl));
                 if (pageForSave.getCode() != 200) continue;
                 pageForSave.setContent(Jsoup.connect(absUrl).get().html());
                 pageForSave.setPath(pagePath);

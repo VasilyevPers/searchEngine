@@ -13,4 +13,6 @@ public interface PageRepository extends JpaRepository<Page, Integer> {
            nativeQuery = true)
     List<String> findAllPathBySiteId (int siteId);
     Page findByPath (String path);
+
+    int countBySiteId (int siteId);
 }
