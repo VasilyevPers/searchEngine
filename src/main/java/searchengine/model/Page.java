@@ -34,7 +34,7 @@ public class Page {
     private String content;
 
     @OneToMany(fetch = FetchType.LAZY, cascade = CascadeType.REMOVE,
-            //orphanRemoval = true,
+            orphanRemoval = true,
             mappedBy = "page")
     private List<searchengine.model.Index> indexList = new ArrayList<>();
 

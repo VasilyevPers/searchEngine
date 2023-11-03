@@ -36,12 +36,12 @@ public class Site {
     private String name;
 
     @OneToMany(fetch = FetchType.LAZY,
-            //orphanRemoval = true,
+            orphanRemoval = true,
             mappedBy = "site")
     private List<Lemma> lemmasList = new ArrayList<>();
 
     @OneToMany(fetch = FetchType.LAZY,cascade = CascadeType.REMOVE,
-            //orphanRemoval = true,
+            orphanRemoval = true,
             mappedBy = "site")
     private List<Page> pages = new ArrayList<>();
 }

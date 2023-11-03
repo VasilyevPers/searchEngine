@@ -28,8 +28,8 @@ public class Lemma {
     @JoinColumn(name = "site_id", referencedColumnName = "id")
     private Site site;
 
-    @OneToMany(fetch = FetchType.LAZY,
-            //orphanRemoval = true,
+    @OneToMany(fetch = FetchType.LAZY, cascade = CascadeType.REFRESH,
+            orphanRemoval = true,
             mappedBy = "lemma")
     private List<Index> index;
 

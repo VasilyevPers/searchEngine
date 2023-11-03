@@ -27,8 +27,7 @@ public class Index {
     @JoinColumn(name = "page_id", referencedColumnName = "id")
     private Page page;
 
-    @ManyToOne(fetch = FetchType.LAZY
-            ,optional = false)
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "lemma_id", referencedColumnName = "id")
     private Lemma lemma;
 
