@@ -33,11 +33,12 @@ public class Page {
     @Column(columnDefinition = "MEDIUMTEXT", nullable = false)
     private String content;
 
-    @ManyToOne(fetch = FetchType.LAZY, optional = false, cascade = CascadeType.REFRESH)
+    @OneToMany(fetch = FetchType.LAZY, cascade = CascadeType.REMOVE,
+            //orphanRemoval = true,
+            mappedBy = "page")
+    private List<searchengine.model.Index> indexList = new ArrayList<>();
+
+    @ManyToOne(fetch = FetchType.LAZY,cascade = CascadeType.MERGE, optional = false)
     @JoinColumn(name = "site_id", referencedColumnName = "id")
     private Site site;
-
-    @OneToMany(fetch = FetchType.LAZY, cascade = CascadeType.REMOVE, orphanRemoval = true)
-    @JoinColumn(name = "page_id", referencedColumnName = "id")
-    private List<searchengine.model.Index> indexList = new ArrayList<>();
 }

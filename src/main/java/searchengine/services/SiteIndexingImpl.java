@@ -7,7 +7,11 @@ import searchengine.config.SiteConfig;
 import searchengine.dto.responseRequest.ResponseMainRequest;
 import searchengine.model.*;
 import searchengine.config.SitesList;
-import searchengine.utils.conections.ConnectionUtils;
+import searchengine.repositories.IndexRepository;
+import searchengine.repositories.LemmaRepository;
+import searchengine.repositories.PageRepository;
+import searchengine.repositories.SiteRepository;
+import searchengine.utils.conection.ConnectionUtils;
 import searchengine.utils.indexing.IndexingPage;
 import searchengine.utils.indexing.IndexingSite;
 import java.time.LocalDateTime;
@@ -18,7 +22,13 @@ import java.util.concurrent.atomic.AtomicBoolean;
 @Service
 public class SiteIndexingImpl implements SiteIndexing {
     @Autowired
-    private AllRepositories allRepositories = new AllRepositories();
+    private SiteRepository siteRepository;
+    @Autowired
+    private PageRepository pageRepository;
+    @Autowired
+    private IndexRepository indexRepository;
+    @Autowired
+    private LemmaRepository lemmaRepository;
     @Autowired
     private SitesList allSitesForIndexing = new SitesList();
     private ConnectionUtils connectionUtils = new ConnectionUtils();
@@ -37,36 +47,54 @@ public class SiteIndexingImpl implements SiteIndexing {
             return responseRequest;
         }
         service = Executors.newCachedThreadPool();
-        allRepositories.getSiteRepository().deleteAll();
+        siteRepository.deleteAll();
         for (SiteConfig siteForIndexing : allSitesForIndexing.getSites()) {
             searchengine.model.Site startSite = new searchengine.model.Site();
             startSite.setStatusTime(LocalDateTime.now());
             startSite.setName(siteForIndexing.getName());
             startSite.setUrl(connectionUtils.correctsTheLink(siteForIndexing.getUrl()));
             startSite.setStatus(StatusIndexing.INDEXING);
-            allRepositories.getSiteRepository().save(startSite);
+            siteRepository.save(startSite);
 
-            createAndRunTasks(allRepositories, startSite, startSite.getUrl());
+            createAndRunTask(startSite, startSite.getUrl());
         }
         responseRequest.setResult(true);
         return responseRequest;
     }
-    private void createAndRunTasks(AllRepositories allRepositories, Site startSite, String linkForIndexing) {
+    private void createAndRunTask(Site startSite, String linkForIndexing) {
         Runnable runnableTask = () ->{
             try {
-                new ForkJoinPool().invoke(new IndexingSite(allRepositories, startSite, linkForIndexing));
-                startSite.setStatus(StatusIndexing.INDEXED);
-                startSite.setStatusTime(LocalDateTime.now());
-                allRepositories.getSiteRepository().save(startSite);
-            } catch (Exception e) {
-                startSite.setStatusTime(LocalDateTime.now());
-                startSite.setStatus(StatusIndexing.FAILED);
-                startSite.setLastError(e.getMessage());
-                allRepositories.getSiteRepository().save(startSite);
+                new ForkJoinPool().invoke(new IndexingSite.IndexingSiteBuilding(startSite, linkForIndexing)
+                        .siteRepository(siteRepository)
+                        .pageRepository(pageRepository)
+                        .indexRepository(indexRepository)
+                        .lemmaRepository(lemmaRepository)
+                        .indexingSite());
+                if (stopIndexing.get()) {
+                    String error = "Индексация остановлена пользователем";
+                    updatesSiteWithErrors(startSite, error);
+                } else updatesSiteWithOk(startSite);
+            } catch (Exception error) {
+                updatesSiteWithErrors(startSite, error.toString());
+                System.out.println(Arrays.toString(error.getStackTrace()));
+                throw new RuntimeException();
             }
         };
         Future<?> runTask = service.submit(runnableTask);
         taskList.add(runTask);
+    }
+
+    private void updatesSiteWithOk (Site startSite) {
+        startSite.setStatus(StatusIndexing.INDEXED);
+        startSite.setStatusTime(LocalDateTime.now());
+        siteRepository.save(startSite);
+    }
+
+    private void updatesSiteWithErrors (Site startSite, String error) {
+        startSite.setStatusTime(LocalDateTime.now());
+        startSite.setStatus(StatusIndexing.FAILED);
+        startSite.setLastError(error);
+        siteRepository.save(startSite);
     }
 
     @Override
@@ -76,7 +104,6 @@ public class SiteIndexingImpl implements SiteIndexing {
             responseRequest.setError("Индексация не запущена");
             return responseRequest;
         }
-        service.shutdownNow();
         stopIndexing.set(true);
         responseRequest.setResult(true);
         while (!isCheckIndexingStatus()) {
@@ -88,7 +115,7 @@ public class SiteIndexingImpl implements SiteIndexing {
         }
         return responseRequest;
     }
-    private boolean isCheckIndexingStatus() {
+    public boolean isCheckIndexingStatus() {
         boolean allDone = true;
         for (Future<?> task : taskList) {
             allDone &= task.isDone();
@@ -98,12 +125,17 @@ public class SiteIndexingImpl implements SiteIndexing {
 
     @Override
     public ResponseMainRequest indexPage (String path) {
+        path = path.substring(path.indexOf("h"));
         responseRequest = new ResponseMainRequest();
         for (SiteConfig site : allSitesForIndexing.getSites()) {
             if (!connectionUtils.isCheckAffiliationSite(site.getUrl(), path)){
                 continue;
             }
-            new IndexingPage(allRepositories).indexPage(site, path);
+            new IndexingPage.IndexingPageBuilding().siteRepository(siteRepository)
+                    .pageRepository(pageRepository)
+                    .indexRepository(indexRepository)
+                    .lemmaRepository(lemmaRepository)
+                    .indexingPage().indexPage(site, path);
             responseRequest.setResult(true);
             return responseRequest;
         }

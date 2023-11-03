@@ -38,6 +38,7 @@ public class StatisticsServiceImpl implements StatisticsService {
     private final PageRepository pageRepository;
     @Autowired
     private final LemmaRepository lemmaRepository;
+    private final SiteIndexingImpl siteIndexing = new SiteIndexingImpl();
 
 
     @Override
@@ -48,7 +49,7 @@ public class StatisticsServiceImpl implements StatisticsService {
         total.setSites(sites.size());
         total.setPages((int) pageRepository.count());
         total.setLemmas((int) lemmaRepository.count());
-        total.setIndexing(true);
+        total.setIndexing(!siteIndexing.isCheckIndexingStatus());
 
         data.setTotal(total);
         List<DetailedStatisticsItem> detailedList = new ArrayList<>();

@@ -3,16 +3,24 @@ package searchengine.repositories;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
+
 import org.springframework.stereotype.Repository;
 import searchengine.model.Lemma;
 
+import java.util.List;
+
 @Repository
 public interface LemmaRepository extends JpaRepository<Lemma, Integer> {
-    @Override
-    @Query(value = "insert into entity on duplicate key update frequency = frequency + 1", nativeQuery = true)
-    <S extends Lemma> S save(S entity);
-
     @Query(value = "SELECT SUM(`frequency`) FROM lemmas where site_id = ?",
     nativeQuery = true)
     Integer countLemmaInSite (int siteId);
+
+    @Override
+    void deleteById(Integer integer);
+
+    Lemma findByLemmaAndSiteId (String lemma, int siteId);
+
+    @Query(value = "SELECT l.* FROM lemmas l JOIN `index` i on i.lemma_id = l.id WHERE i.page_id =?",
+    nativeQuery = true)
+   List<Lemma> findAllByPageId (int pageId);
 }

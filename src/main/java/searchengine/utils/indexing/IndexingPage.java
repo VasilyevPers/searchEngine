@@ -2,13 +2,14 @@ package searchengine.utils.indexing;
 
 import org.jsoup.Jsoup;
 import searchengine.config.SiteConfig;
-import searchengine.model.Index;
-import searchengine.model.Page;
-import searchengine.model.Site;
-import searchengine.model.StatusIndexing;
-import searchengine.services.AllRepositories;
-import searchengine.utils.conections.ConnectionUtils;
+import searchengine.model.*;
+import searchengine.repositories.IndexRepository;
+import searchengine.repositories.LemmaRepository;
+import searchengine.repositories.PageRepository;
+import searchengine.repositories.SiteRepository;
+import searchengine.utils.conection.ConnectionUtils;
 import searchengine.utils.lemmatization.CreateLemmaAndIndex;
+import searchengine.utils.lemmatization.UpdateLemma;
 
 import java.io.IOException;
 import java.time.LocalDateTime;
@@ -17,16 +18,25 @@ import java.util.*;
 public class IndexingPage {
     private CreateLemmaAndIndex createLemmaAndIndex = new CreateLemmaAndIndex();
     private ConnectionUtils connectionUtils = new ConnectionUtils();
-    private AllRepositories allRepositories;
+    private SiteRepository siteRepository;
+    private PageRepository pageRepository;
+    private IndexRepository indexRepository;
+    private LemmaRepository lemmaRepository;
 
-    public IndexingPage (AllRepositories allRepositories) {
-        this.allRepositories = allRepositories;
+    private IndexingPage(SiteRepository siteRepository, PageRepository pageRepository,
+                        IndexRepository indexRepository, LemmaRepository lemmaRepository) {
+        this.siteRepository = siteRepository;
+        this.pageRepository = pageRepository;
+        this.indexRepository = indexRepository;
+        this.lemmaRepository = lemmaRepository;
+
     }
 
     public final void indexPage (SiteConfig siteConfig, String path) {
-        Map<String, List<Index>> indexList = new HashMap<>();
+        List<Index> indexForSaving = new ArrayList<>();
+        Map<String, Lemma> lemmaList = new HashMap<>();
         path = connectionUtils.correctsTheLink(path);
-        Site site = allRepositories.getSiteRepository().findByUrl(siteConfig.getUrl());
+        Site site = siteRepository.findByUrl(siteConfig.getUrl());
         if (site == null) {
             site = new Site();
             site.setLastError(null);
@@ -37,30 +47,35 @@ public class IndexingPage {
         }
         Page page = searchPageInBD(path);
         try {
-            if (page == null) {
-                page = createPage(site, path);
+            if (page != null) {
+                deletesOrUpdatesPageData(page.getId());
             }
-            createLemmaAndIndex.createLemmaAndIndex(page, indexList);
+            page = createPage(site, path);
+
+            createLemmaAndIndex.createLemmaAndIndex(page, indexForSaving, lemmaList);
+
             site.setStatus(StatusIndexing.INDEXED);
             site.setStatusTime(LocalDateTime.now());
-            allRepositories.getSiteRepository().save(site);
-            allRepositories.getPageRepository().save(page);
-            allRepositories.getIndexRepository().saveAll(indexList.get(page.getPath()));
+
+            Map<String, Lemma> lemmaForSaving = new UpdateLemma().updateLemma(lemmaRepository, indexForSaving, lemmaList);
+            lemmaRepository.saveAll(lemmaForSaving.values());
+            siteRepository.save(site);
+            indexRepository.saveAll(indexForSaving);
         } catch (IOException e) {
-            System.out.println(e.getMessage());
+            System.out.println("страница не доступна");
         }
     }
 
     private Page searchPageInBD(String path) {
-        Page page = allRepositories.getPageRepository().findByPath(path);
+        Page page = pageRepository.findByPath(path);
 
         if (page == null) {
             path = path.substring(0, path.indexOf("w")) + path.substring(path.indexOf(".") + 1);
-            page = allRepositories.getPageRepository().findByPath(path);
+            page = pageRepository.findByPath(path);
         }
         if (page == null) {
-            path = path.substring(path.indexOf("/"), path.indexOf("."));
-            page = allRepositories.getPageRepository().findByPath(path);
+            path = path.substring(path.indexOf("/", path.indexOf(".")));
+            page = pageRepository.findByPath(path);
         }
         return page;
     }
@@ -73,5 +88,60 @@ public class IndexingPage {
         pageForReindexing.setPath(path);
 
         return pageForReindexing;
+    }
+
+    private void deletesOrUpdatesPageData (int pageId) {
+    List<Lemma> lemmaOnThePage = lemmaRepository.findAllByPageId(pageId);
+    List<Lemma> lemmaForSave = new ArrayList<>();
+    List<Lemma> lemmaForDelete = new ArrayList<>();
+    for (Lemma lemma : lemmaOnThePage) {
+        if (lemma.getFrequency() > 1) {
+            lemma.setFrequency(lemma.getFrequency() - 1);
+            lemmaForSave.add(lemma);
+        }
+        if (lemma.getFrequency() == 1) {
+            lemmaForDelete.add(lemma);
+        }
+    }
+    lemmaRepository.saveAll(lemmaForSave);
+    lemmaRepository.deleteAllInBatch(lemmaForDelete);
+    pageRepository.deleteById(pageId);
+    }
+
+    public static class IndexingPageBuilding {
+        private SiteRepository siteRepository;
+        private PageRepository pageRepository;
+        private IndexRepository indexRepository;
+        private LemmaRepository lemmaRepository;
+
+        public IndexingPageBuilding siteRepository(SiteRepository siteRepository) {
+            this.siteRepository = siteRepository;
+            return this;
+        }
+
+        public IndexingPageBuilding pageRepository(PageRepository pageRepository) {
+            this.pageRepository = pageRepository;
+            return this;
+        }
+
+        public IndexingPageBuilding indexRepository(IndexRepository indexRepository) {
+            this.indexRepository = indexRepository;
+            return this;
+        }
+
+        public IndexingPageBuilding lemmaRepository(LemmaRepository lemmaRepository) {
+            this.lemmaRepository = lemmaRepository;
+            return this;
+        }
+
+        public IndexingPage indexingPage() {
+            return new IndexingPage(this);
+        }
+    }
+    private IndexingPage(IndexingPageBuilding indexingPageBuilding) {
+        siteRepository = indexingPageBuilding.siteRepository;
+        pageRepository = indexingPageBuilding.pageRepository;
+        indexRepository = indexingPageBuilding.indexRepository;
+        lemmaRepository = indexingPageBuilding.lemmaRepository;
     }
 }

@@ -21,8 +21,8 @@ spring:
 
 indexing-settings:
   sites:
-    - url: https://www.evoulve.com/
-      name: https://www.evoulve.com/
+#    - url: https://www.evoulve.com/
+#      name: https://www.evoulve.com/
     - url: http://www.framenoir.com/
       name: http://www.framenoir.com/.Ru
     - url: https://dombulgakova.ru/

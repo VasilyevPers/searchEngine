@@ -7,6 +7,9 @@ import searchengine.dto.statistics.StatisticsResponse;
 import searchengine.services.SiteIndexing;
 import searchengine.services.StatisticsService;
 
+import java.net.URLDecoder;
+import java.nio.charset.StandardCharsets;
+
 @RestController
 @RequestMapping("/api")
 public class ApiController {
@@ -36,7 +39,7 @@ public class ApiController {
 
     @PostMapping(value = "/indexPage")
     public ResponseEntity<ResponseMainRequest> indexPage (@RequestBody String path) {
-        return ResponseEntity.ok(siteIndexing.indexPage(path));
+        return ResponseEntity.ok(siteIndexing.indexPage(URLDecoder.decode(path, StandardCharsets.UTF_8)));
     }
 
 

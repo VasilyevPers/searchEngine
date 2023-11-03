@@ -23,11 +23,12 @@ public class Index {
     @Column(name = "`rank`", columnDefinition = "FLOAT", nullable = false)
     private float rank;
 
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @ManyToOne(fetch = FetchType.LAZY,cascade = CascadeType.PERSIST, optional = false)
     @JoinColumn(name = "page_id", referencedColumnName = "id")
     private Page page;
 
-    @ManyToOne(fetch = FetchType.LAZY, cascade = CascadeType.ALL, optional = false)
+    @ManyToOne(fetch = FetchType.LAZY
+            ,optional = false)
     @JoinColumn(name = "lemma_id", referencedColumnName = "id")
     private Lemma lemma;
 

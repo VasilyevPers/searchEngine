@@ -1,4 +1,4 @@
-package searchengine.utils.conections;
+package searchengine.utils.conection;
 
 import org.jsoup.Connection;
 import org.jsoup.Jsoup;
@@ -21,15 +21,15 @@ public class ConnectionUtils {
         siteUrl = correctsTheLink(siteUrl);
         int start = siteUrl.indexOf(".") + 1;
         String nameSite = siteUrl.substring(start);
-        boolean result = path.matches("https?://(w{3}\\.)?" + nameSite + ".+");
-        return result;
+        return path.matches("https?://(w{3}\\.)?" + nameSite + ".+");
     }
 
     public final String correctsTheLink(String link) {
         if (link.contains("//www.")) return link;
 
         int placeOfInsertion = link.indexOf("/", link.indexOf("/") + 1) + 1;
-        return link.substring(0, placeOfInsertion) + "www." + link.substring(placeOfInsertion);
+        String finalLink = link.substring(0, placeOfInsertion) + "www." + link.substring(placeOfInsertion);
+        return finalLink;
     }
 
     public int requestResponseCode(String absUrlPage) {

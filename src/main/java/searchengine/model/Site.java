@@ -35,10 +35,13 @@ public class Site {
     @Column(columnDefinition = "VARCHAR(255)", nullable = false)
     private String name;
 
-    @OneToMany(fetch = FetchType.LAZY, cascade = CascadeType.REMOVE, orphanRemoval = true, mappedBy = "site")
-    private List<Page> pages = new ArrayList<>();
-
-    @OneToMany(fetch = FetchType.LAZY, cascade = CascadeType.REFRESH, orphanRemoval = true, mappedBy = "site")
+    @OneToMany(fetch = FetchType.LAZY,
+            //orphanRemoval = true,
+            mappedBy = "site")
     private List<Lemma> lemmasList = new ArrayList<>();
 
+    @OneToMany(fetch = FetchType.LAZY,cascade = CascadeType.REMOVE,
+            //orphanRemoval = true,
+            mappedBy = "site")
+    private List<Page> pages = new ArrayList<>();
 }
