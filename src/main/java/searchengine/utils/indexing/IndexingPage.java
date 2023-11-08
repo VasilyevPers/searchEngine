@@ -52,14 +52,14 @@ public class IndexingPage {
             }
             page = createPage(site, path);
 
-            createLemmaAndIndex.createLemmaAndIndex(page, indexForSaving, lemmaList);
-
-            site.setStatus(StatusIndexing.INDEXED);
-            site.setStatusTime(LocalDateTime.now());
+            createLemmaAndIndex.createLemmaAndIndex(page);
+            createLemmaAndIndex.createListLemmaAndIndex(page, indexForSaving, lemmaList);
 
             Map<String, Lemma> lemmaForSaving = new UpdateLemma().updateLemma(lemmaRepository, indexForSaving, lemmaList);
-            lemmaRepository.saveAll(lemmaForSaving.values());
+            site.setStatus(StatusIndexing.INDEXED);
+            site.setStatusTime(LocalDateTime.now());
             siteRepository.save(site);
+            lemmaRepository.saveAll(lemmaForSaving.values());
             indexRepository.saveAll(indexForSaving);
         } catch (IOException e) {
             System.out.println("страница не доступна");
@@ -103,9 +103,9 @@ public class IndexingPage {
             lemmaForDelete.add(lemma);
         }
     }
+    pageRepository.deleteById(pageId);
     lemmaRepository.saveAll(lemmaForSave);
     lemmaRepository.deleteAllInBatch(lemmaForDelete);
-    pageRepository.deleteById(pageId);
     }
 
     public static class IndexingPageBuilding {

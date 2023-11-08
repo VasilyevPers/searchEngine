@@ -27,7 +27,7 @@ public class IndexingSite extends RecursiveAction {
     private PageRepository pageRepository;
     private IndexRepository indexRepository;
     private LemmaRepository lemmaRepository;
-    private  Site site;
+    private Site site;
     private  String linkForIndexing;
 
     private IndexingSite(SiteRepository siteRepository, PageRepository pageRepository,
@@ -46,10 +46,13 @@ public class IndexingSite extends RecursiveAction {
     protected void compute() {
         Map<String, Page> elementsOnThePage = new HashMap<>();
         List<String> continuingIndexing = new ArrayList<>();
-        List<String> allPathList = pageRepository.findAllPathBySiteId(site.getId());
+        List<String> allPathList;
+        synchronized (site.getUrl()){
+            allPathList = pageRepository.findAllPathBySiteId(site.getId());
+        }
         try {
             Document urlCode = Jsoup.connect(linkForIndexing).get();
-            Thread.sleep(200);
+            Thread.sleep(150);
             Elements elements = urlCode.select("a");
             if (SiteIndexingImpl.getStopIndexing().get())
                 elements = new Elements();
@@ -87,25 +90,27 @@ public class IndexingSite extends RecursiveAction {
     private void saveBDAndContinuingIndexing (Map<String, Page> elementsOnThePage,  List<String> continuingIndexing) {
         List<Index> indexForSaving = new ArrayList<>();
         Map<String, Lemma> lemmaList = new HashMap<>();
-        //synchronized (site.getUrl()) {
+
+        for (Map.Entry<String, Page> entry : elementsOnThePage.entrySet()) {
+            try {
+                new CreateLemmaAndIndex().createLemmaAndIndex(entry.getValue());
+            } catch (IOException e) {
+                System.out.println(e.getMessage());
+            }
+        }
+        synchronized (site.getUrl()) {
             List<String> allPathList = pageRepository.findAllPathBySiteId(site.getId());
             for (Map.Entry<String, Page> entry : elementsOnThePage.entrySet()) {
                 if (allPathList.contains(entry.getValue().getPath())) continue;
-                if (entry.getValue().getPath().length() > 1)
-                    continuingIndexing.add(entry.getKey());
-                try {
-                    new CreateLemmaAndIndex().createLemmaAndIndex(entry.getValue(), indexForSaving, lemmaList);
-                } catch (IOException e) {
-                    System.out.println(e.getMessage());
-                }
-           // }
+                if (entry.getValue().getPath().length() > 1) continuingIndexing.add(entry.getKey());
+                new CreateLemmaAndIndex().createListLemmaAndIndex(entry.getValue(), indexForSaving, lemmaList);
+            }
             Map<String, Lemma> lemmaForSaving = new UpdateLemma().updateLemma(lemmaRepository, indexForSaving, lemmaList);
             site.setStatusTime(LocalDateTime.now());
             siteRepository.save(site);
             lemmaRepository.saveAll(lemmaForSaving.values());
             indexRepository.saveAll(indexForSaving);
         }
-
     }
 
     private void ranRecursionIndexing (List<String> continuingIndexing) {
