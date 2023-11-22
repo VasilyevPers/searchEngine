@@ -10,30 +10,23 @@ import java.util.*;
 public class Lemmatization {
     private final LuceneMorphology rusLuceneMorph;
     private final LuceneMorphology enLuceneMorph;
-    private final static String[] PARTICLES_NAMES = new String[]{" СОЮЗ", " ПРЕДЛ", " МЕЖД"," ЧАСТ", " МС-П", " ПРЕДК", " ИНФИНИТИВ", " МС", "CONJ", "ARTICLE", "PART", "ADVERB"};
+    private final static String[] PARTICLES_NAMES = new String[]{" СОЮЗ", " ПРЕДЛ", " МЕЖД"," ЧАСТ", "вопр", " МС-П", " ПРЕДК", " МС", "CONJ", "ARTICLE", "PART", "ADVERB"};
 
     public Lemmatization () throws IOException {
         rusLuceneMorph = new RussianLuceneMorphology();
         enLuceneMorph = new EnglishLuceneMorphology();
     }
 
-    public final Map<String, Integer> collectLemmas (String htmlCode) {
+    public Map<String, Integer> collectLemmasForIndexing(String htmlCode) {
         String text = parseHTML(htmlCode);
         String[] wordList = listSeparating(text);
         Map<String, Integer> lemmas = new HashMap<>();
         for (String word : wordList) {
-            if (word.isBlank() || word.length() < 3) continue;
 
-            LuceneMorphology luceneMorphology = languageSelection(word);
-            if (luceneMorphology == null) continue;
+            word = word.replaceAll("[^а-яa-z\\s]", " ").trim();
 
-            List<String> wordBaseForm = luceneMorphology.getMorphInfo(word);
-            if (isChecksWordType(wordBaseForm)) continue;
-
-            List<String> normalForm = luceneMorphology.getNormalForms(word);
-            if (normalForm.isEmpty()) continue;
-
-            String normalWord = normalForm.get(0);
+            String normalWord = createNormalWordForm(word);
+            if (normalWord == null) continue;
 
             if (lemmas.containsKey(normalWord)) lemmas.put(normalWord, lemmas.get(normalWord) + 1);
                 else lemmas.put(normalWord, 1);
@@ -41,9 +34,52 @@ public class Lemmatization {
         return lemmas;
     }
 
+    public List<String> collectLemmasForSearch (String searchText) {
+        List<String> wordsForSearch = new ArrayList<>();
+        String[] words = listSeparating(searchText);
+        for (String word : words) {
+            String wordForSearch = createNormalWordForm(word);
+            if (wordForSearch == null) continue;
+            wordsForSearch.add(wordForSearch);
+        }
+        return wordsForSearch;
+    }
+
+    public List<String> createNormalWordTypeList (String searchText) {
+        List<String> wordList = new ArrayList<>();
+        String[] words = listSeparating(searchText);
+        for (String word : words) {
+            if (word.isBlank() || word.length() < 2) continue;
+
+            LuceneMorphology luceneMorphology = languageSelection(word);
+            if (luceneMorphology == null) continue;
+
+            List<String> wordBaseForm = luceneMorphology.getMorphInfo(word);
+            if (isChecksWordType(wordBaseForm)) continue;
+
+            wordList.add(word);
+        }
+        return wordList;
+    }
+
+    private String createNormalWordForm(String word) {
+        if (word.isBlank() || word.length() < 2) return null;
+
+        LuceneMorphology luceneMorphology = languageSelection(word);
+        if (luceneMorphology == null) return null;
+
+        List<String> wordBaseForm = luceneMorphology.getMorphInfo(word);
+        if (isChecksWordType(wordBaseForm)) return null;
+
+        List<String> normalForm = luceneMorphology.getNormalForms(word);
+        if (normalForm.isEmpty()) return null;
+
+        return normalForm.get(0);
+    }
+
     private LuceneMorphology languageSelection(String word) {
         int wordLength = word.length();
-        if (word.matches("[а-я]" + "{" + wordLength + "}"))
+        if (word.matches("[а-яё]" + "{" + wordLength + "}"))
             return rusLuceneMorph;
 
         if (word.matches("[a-z]" + "{" + wordLength + "}"))
@@ -65,8 +101,8 @@ public class Lemmatization {
 
     private String[] listSeparating(String text) {
         return text.toLowerCase(Locale.ROOT)
-                .replaceAll("[^а-яa-z\\s]", " ")
-                .trim()
+                //.replaceAll("[^а-яa-z\\s]", " ")
+                //.trim()
                 .split("\\s+");
     }
 

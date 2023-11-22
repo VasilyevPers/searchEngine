@@ -3,6 +3,7 @@ import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
+import searchengine.config.SiteConfig;
 import searchengine.model.Index;
 import searchengine.model.Lemma;
 import searchengine.model.Page;
@@ -12,7 +13,6 @@ import searchengine.repositories.LemmaRepository;
 import searchengine.repositories.PageRepository;
 import searchengine.repositories.SiteRepository;
 import searchengine.services.SiteIndexingImpl;
-import searchengine.utils.conection.ConnectionUtils;
 import searchengine.utils.lemmatization.CreateLemmaAndIndex;
 import searchengine.utils.lemmatization.UpdateLemma;
 import java.io.IOException;
@@ -117,7 +117,7 @@ public class IndexingSite extends RecursiveAction {
         List<IndexingSite> taskBranch = new ArrayList<>();
         for (String entry : continuingIndexing) {
 
-            IndexingSite siteIndexing = new IndexingSite.IndexingSiteBuilding(site, entry)
+            IndexingSite siteIndexing = new IndexingSite.IndexingSiteBuilding(site, connectionUtils.correctsTheLink(entry))
                     .siteRepository(siteRepository)
                     .pageRepository(pageRepository)
                     .indexRepository(indexRepository)

@@ -32,4 +32,12 @@ public class Lemma {
             orphanRemoval = true,
             mappedBy = "lemma")
     private List<Index> index;
+
+    @Override
+    public String toString() {
+        return "id = " + id + "\n" +
+                "siteId = " + siteId + "\n" +
+                "lemma = " + lemma + '\n' +
+                "frequency = " + frequency;
+    }
 }

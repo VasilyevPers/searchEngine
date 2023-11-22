@@ -1,5 +1,7 @@
 package searchengine.controllers;
 
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import searchengine.dto.responseRequest.ResponseMainRequest;
@@ -42,5 +44,8 @@ public class ApiController {
         return ResponseEntity.ok(siteIndexing.indexPage(URLDecoder.decode(path, StandardCharsets.UTF_8)));
     }
 
-
+    @GetMapping(value = "/search")
+    public ResponseEntity<?> search (String query, String site) {
+        return ResponseEntity.ok(siteIndexing.search(query, site));
+    }
 }

@@ -14,10 +14,10 @@ public class UpdateLemma {
         Map<String, Lemma> lemmaForSaving = new HashMap<>();
         for (Map.Entry<String, Lemma> lemma : lemmaList.entrySet()) {
             Lemma lemmaInBD = lemmaRepository.findByLemmaAndSiteId(lemma.getKey(), lemma.getValue().getSite().getId());
-            if (lemmaInBD == null) {
-                lemmaInBD = lemma.getValue();
-            } else {
+            try {
                 lemmaInBD.setFrequency(lemmaInBD.getFrequency() + lemma.getValue().getFrequency());
+            } catch (NullPointerException e) {
+                lemmaInBD = lemma.getValue();
             }
             Lemma finalLemmaInBD = lemmaInBD;
             indexForSaving.forEach(i -> {

@@ -7,7 +7,6 @@ import searchengine.repositories.IndexRepository;
 import searchengine.repositories.LemmaRepository;
 import searchengine.repositories.PageRepository;
 import searchengine.repositories.SiteRepository;
-import searchengine.utils.conection.ConnectionUtils;
 import searchengine.utils.lemmatization.CreateLemmaAndIndex;
 import searchengine.utils.lemmatization.UpdateLemma;
 
@@ -29,7 +28,6 @@ public class IndexingPage {
         this.pageRepository = pageRepository;
         this.indexRepository = indexRepository;
         this.lemmaRepository = lemmaRepository;
-
     }
 
     public final void indexPage (SiteConfig siteConfig, String path) {

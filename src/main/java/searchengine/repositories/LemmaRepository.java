@@ -22,4 +22,6 @@ public interface LemmaRepository extends JpaRepository<Lemma, Integer> {
     @Query(value = "SELECT l.* FROM lemmas l JOIN `index` i on i.lemma_id = l.id WHERE i.page_id =?",
     nativeQuery = true)
    List<Lemma> findAllByPageId (int pageId);
+
+    List<Lemma> findAllByLemma (String lemma);
 }

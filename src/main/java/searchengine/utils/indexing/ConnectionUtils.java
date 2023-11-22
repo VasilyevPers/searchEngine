@@ -1,4 +1,4 @@
-package searchengine.utils.conection;
+package searchengine.utils.indexing;
 
 import org.jsoup.Connection;
 import org.jsoup.Jsoup;
@@ -28,8 +28,7 @@ public class ConnectionUtils {
         if (link.contains("//www.")) return link;
 
         int placeOfInsertion = link.indexOf("/", link.indexOf("/") + 1) + 1;
-        String finalLink = link.substring(0, placeOfInsertion) + "www." + link.substring(placeOfInsertion);
-        return finalLink;
+        return link.substring(0, placeOfInsertion) + "www." + link.substring(placeOfInsertion);
     }
 
     public int requestResponseCode(String absUrlPage) {

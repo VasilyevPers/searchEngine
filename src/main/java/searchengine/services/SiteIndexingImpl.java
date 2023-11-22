@@ -5,15 +5,19 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import searchengine.config.SiteConfig;
 import searchengine.dto.responseRequest.ResponseMainRequest;
+import searchengine.dto.searchRequest.SearchRequest;
 import searchengine.model.*;
 import searchengine.config.SitesList;
 import searchengine.repositories.IndexRepository;
 import searchengine.repositories.LemmaRepository;
 import searchengine.repositories.PageRepository;
 import searchengine.repositories.SiteRepository;
-import searchengine.utils.conection.ConnectionUtils;
+import searchengine.utils.indexing.ConnectionUtils;
 import searchengine.utils.indexing.IndexingPage;
 import searchengine.utils.indexing.IndexingSite;
+import searchengine.utils.search.AlternativeSearchPage;
+import searchengine.utils.search.SearchPage;
+
 import java.time.LocalDateTime;
 import java.util.*;
 import java.util.concurrent.*;
@@ -49,7 +53,7 @@ public class SiteIndexingImpl implements SiteIndexing {
         service = Executors.newCachedThreadPool();
         siteRepository.deleteAll();
         for (SiteConfig siteForIndexing : allSitesForIndexing.getSites()) {
-            searchengine.model.Site startSite = new searchengine.model.Site();
+            Site startSite = new Site();
             startSite.setStatusTime(LocalDateTime.now());
             startSite.setName(siteForIndexing.getName());
             startSite.setUrl(connectionUtils.correctsTheLink(siteForIndexing.getUrl()));
@@ -124,7 +128,7 @@ public class SiteIndexingImpl implements SiteIndexing {
     }
 
     @Override
-    public ResponseMainRequest indexPage (String path) {
+    public ResponseMainRequest indexPage (String path)  {
         path = path.substring(path.indexOf("h"));
         responseRequest = new ResponseMainRequest();
         for (SiteConfig site : allSitesForIndexing.getSites()) {
@@ -142,5 +146,21 @@ public class SiteIndexingImpl implements SiteIndexing {
         responseRequest.setError("Данная страница находится за пределами сайтов, " +
                 "указанных в конфигурационном файле");
         return responseRequest;
+    }
+
+    @Override
+    public SearchRequest search(String searchText, String site) {
+
+        return new SearchPage.SearchPageBuilding().siteRepository(siteRepository)
+                .pageRepository(pageRepository)
+                .indexRepository(indexRepository)
+                .lemmaRepository(lemmaRepository)
+                .searchPage().search(searchText, site);
+
+//        return new AlternativeSearchPage.SearchPageBuilding().siteRepository(siteRepository)
+//                .pageRepository(pageRepository)
+//                .indexRepository(indexRepository)
+//                .lemmaRepository(lemmaRepository)
+//                .searchPage().search(searchText, site);
     }
 }

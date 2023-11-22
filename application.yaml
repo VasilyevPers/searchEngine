@@ -13,6 +13,7 @@ spring:
           batch_size: 50
           order_insert: true
           order_delete: true
+          order_update: true
         dialect: org.hibernate.dialect.MySQL8Dialect
     hibernate:
       ddl-auto: update

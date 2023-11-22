@@ -13,8 +13,21 @@ public interface PageRepository extends JpaRepository<Page, Integer> {
            nativeQuery = true)
     List<String> findAllPathBySiteId (int siteId);
     Page findByPath (String path);
-
     int countBySiteId (int siteId);
     boolean existsByPath (String path);
-
+    @Query(value = "SELECT p.* " +
+            "FROM pages p " +
+            "JOIN `index` i on i.page_id = p.id " +
+            "JOIN lemmas l on i.lemma_id = l.id " +
+            "WHERE l.id =?",
+    nativeQuery = true)
+    List<Page> findByLemmaId (int id);
+    @Query(value = "SELECT p.* " +
+            "FROM pages p " +
+            "JOIN `index` i on i.page_id = p.id " +
+            "JOIN lemmas l on i.lemma_id = l.id " +
+            "WHERE l.id =? " +
+            "LIMIT 30",
+            nativeQuery = true)
+    List<Page> findByLemmaIdAlternative (int id);
 }

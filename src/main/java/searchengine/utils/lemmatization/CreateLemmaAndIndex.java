@@ -9,7 +9,7 @@ import java.util.Map;
 
 public class CreateLemmaAndIndex {
     public void createLemmaAndIndex (Page page) throws IOException {
-        Map<String, Integer> lemmasOnThePage = new Lemmatization().collectLemmas(page.getContent());
+        Map<String, Integer> lemmasOnThePage = new Lemmatization().collectLemmasForIndexing(page.getContent());
 
         for (Map.Entry<String, Integer> entry : lemmasOnThePage.entrySet()) {
 

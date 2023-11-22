@@ -41,4 +41,20 @@ public class Page {
     @ManyToOne(fetch = FetchType.LAZY,cascade = CascadeType.MERGE, optional = false)
     @JoinColumn(name = "site_id", referencedColumnName = "id")
     private Site site;
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (!(o instanceof Page page)) return false;
+
+        if (siteId != page.siteId) return false;
+        return Objects.equals(path, page.path);
+    }
+
+    @Override
+    public int hashCode() {
+        int result = siteId;
+        result = 31 * result + (path != null ? path.hashCode() : 0);
+        return result;
+    }
 }
