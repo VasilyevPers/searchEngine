@@ -15,7 +15,6 @@ import searchengine.repositories.SiteRepository;
 import searchengine.utils.indexing.ConnectionUtils;
 import searchengine.utils.indexing.IndexingPage;
 import searchengine.utils.indexing.IndexingSite;
-import searchengine.utils.search.AlternativeSearchPage;
 import searchengine.utils.search.SearchPage;
 
 import java.time.LocalDateTime;
@@ -149,18 +148,12 @@ public class SiteIndexingImpl implements SiteIndexing {
     }
 
     @Override
-    public SearchRequest search(String searchText, String site) {
+    public SearchRequest search(String searchText, String site, int offset, int limit) {
 
         return new SearchPage.SearchPageBuilding().siteRepository(siteRepository)
                 .pageRepository(pageRepository)
                 .indexRepository(indexRepository)
                 .lemmaRepository(lemmaRepository)
-                .searchPage().search(searchText, site);
-
-//        return new AlternativeSearchPage.SearchPageBuilding().siteRepository(siteRepository)
-//                .pageRepository(pageRepository)
-//                .indexRepository(indexRepository)
-//                .lemmaRepository(lemmaRepository)
-//                .searchPage().search(searchText, site);
+                .searchPage().search(searchText, site, offset, limit);
     }
 }

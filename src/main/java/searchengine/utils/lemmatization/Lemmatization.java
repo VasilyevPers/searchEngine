@@ -23,7 +23,8 @@ public class Lemmatization {
         Map<String, Integer> lemmas = new HashMap<>();
         for (String word : wordList) {
 
-            word = word.replaceAll("[^а-яa-z\\s]", " ").trim();
+            word = word.replaceAll("ё", "e");
+            word = word.replaceAll("[^а-яa-z]", " ").strip();
 
             String normalWord = createNormalWordForm(word);
             if (normalWord == null) continue;
@@ -79,7 +80,7 @@ public class Lemmatization {
 
     private LuceneMorphology languageSelection(String word) {
         int wordLength = word.length();
-        if (word.matches("[а-яё]" + "{" + wordLength + "}"))
+        if (word.matches("[а-я]" + "{" + wordLength + "}"))
             return rusLuceneMorph;
 
         if (word.matches("[a-z]" + "{" + wordLength + "}"))
@@ -101,8 +102,6 @@ public class Lemmatization {
 
     private String[] listSeparating(String text) {
         return text.toLowerCase(Locale.ROOT)
-                //.replaceAll("[^а-яa-z\\s]", " ")
-                //.trim()
                 .split("\\s+");
     }
 

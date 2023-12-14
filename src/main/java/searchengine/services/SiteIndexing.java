@@ -5,6 +5,6 @@ public interface SiteIndexing {
      ResponseMainRequest fullIndexingSite();
      ResponseMainRequest stopIndexing();
      ResponseMainRequest indexPage(String path);
-     Object search(String searchText, String site);
+     Object search(String searchText, String site, int offset, int limit);
 
 }

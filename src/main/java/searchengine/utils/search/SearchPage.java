@@ -1,8 +1,6 @@
 package searchengine.utils.search;
 
 import org.jsoup.Jsoup;
-import org.jsoup.nodes.Element;
-import org.jsoup.select.Elements;
 import searchengine.dto.searchRequest.FoundPage;
 import searchengine.dto.searchRequest.SearchRequest;
 import searchengine.model.Lemma;
@@ -32,14 +30,14 @@ public class SearchPage {
         this.lemmaRepository = lemmaRepository;
     }
         
-    public SearchRequest search(String searchText, String site) {
+    public SearchRequest search(String searchText, String site, int offset, int limit) {
         SearchRequest searchRequest = new SearchRequest();
         List<String> lemmasForSearch = createLemmas(searchText);
         if (lemmasForSearch.isEmpty()) return searchRequest;
         List<Lemma> lemmaList = searchLemmasInBD(site, lemmasForSearch);
-        List<Page> pageList = searchPages(lemmaList);
-
+        List<Page> pageList = searchPages(lemmaList, offset, limit);
         searchRequest.setCount(pageList.size());
+        if (pageList.isEmpty()) return searchRequest;
         searchRequest.setData(createFoundPages(pageList, lemmaList, searchText));
 
         return searchRequest;
@@ -75,20 +73,19 @@ public class SearchPage {
         return lemmaList;
     }
 
-    private List<Page> searchPages (List<Lemma> lemmaList) {
+    private List<Page> searchPages (List<Lemma> lemmaList, int offset, int limit) {
         List<Page> finalPagesList = new ArrayList<>();
         if (lemmaList.isEmpty()) return finalPagesList;
-        List<Page> pagesList = new ArrayList<>(pageRepository.findByLemmaId(lemmaList.get(0).getId()));
+        List<Page> pagesList = new ArrayList<>(pageRepository.findByLemmaId(lemmaList.get(0).getId(), limit, offset));
         for (int i = 1; i < lemmaList.size(); i++) {
-            if (lemmaList.get(i).getFrequency() > 30) continue;
-            List<Page> pageList = pageRepository.findByLemmaId(lemmaList.get(i).getId());
+            if (lemmaList.get(i).getFrequency() > 3000) continue;
+            List<Page> pageList = pageRepository.findAllByLemmaId(lemmaList.get(i).getId());
             for (Page page : pagesList) {
                 if (pageList.contains(page)) finalPagesList.add(page);
             }
-            if (!finalPagesList.isEmpty()) {
-                pagesList = List.copyOf(finalPagesList);
-                finalPagesList.clear();
-            }
+            pagesList = List.copyOf(finalPagesList);
+            finalPagesList.clear();
+
         }
         return pagesList;
     }
@@ -102,7 +99,7 @@ public class SearchPage {
             foundPage.setSiteName(page.getSite().getName());
             foundPage.setUri(editsThePath(page.getPath()));
             foundPage.setTitle(Jsoup.parse(page.getContent()).title());
-            foundPage.setSnippet(createSnippet(page.getContent(), searchText));
+            foundPage.setSnippet(new CreateSnippet().createSnippet(page.getContent(), searchText));
             foundPage.setRelevance(createRelevance(page.getId(), lemmaList));
             foundPages.add(foundPage);
         }
@@ -113,7 +110,6 @@ public class SearchPage {
             foundPage.setRelevance(foundPage.getRelevance() / maxRelevance);
         }
         foundPages.sort(comparator);
-        foundPages.forEach(System.out::println);
         return foundPages;
     }
     private String editsTheLink (String url) {
@@ -123,42 +119,6 @@ public class SearchPage {
     private String editsThePath (String path) {
         if (path.isEmpty()) path = "/";
         return path.startsWith("/") ? path : path.substring(path.indexOf("/", path.indexOf(".")));
-    }
-
-    private String createSnippet (String contentPage, String searchText) {
-
-        String[] sentences = Jsoup.parse(contentPage).text().split("\\. ");
-        List<String> wordSearch;
-        try {
-            wordSearch = new Lemmatization().createNormalWordTypeList(searchText);
-        } catch (IOException e) {
-            wordSearch = new ArrayList<>();
-        }
-        Map<String, Integer> wordCountInSentence = new HashMap<>();
-        for (String sentence : sentences ) {
-            if (sentence.split(" ").length < wordSearch.size()) continue;
-            int wordCount = 0;
-            for (String word : wordSearch) {
-                if (sentence.contains(word)) wordCount += 1;
-            }
-            wordCountInSentence.put(sentence + ".", wordCount);
-        }
-        Map<String, Integer> sortedWordCountInSentence = wordCountInSentence.entrySet()
-                .stream()
-                .sorted(Map.Entry.comparingByValue(Comparator.reverseOrder()))
-                .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue, (oldValue, newValue) -> oldValue, LinkedHashMap::new));
-
-        return createSnippet(sortedWordCountInSentence.keySet().stream().toList());
-    }
-
-    private String createSnippet (List<String> snippetList) {
-        String snippet = snippetList.get(0);
-        try {
-            snippet = snippet.substring(0, snippet.indexOf(" ", 250));
-        } catch (StringIndexOutOfBoundsException e) {
-            return snippet;
-        }
-        return snippet;
     }
 
     private double createRelevance (int pageId, List<Lemma> lemmaList) {
