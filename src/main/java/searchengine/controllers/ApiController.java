@@ -1,7 +1,5 @@
 package searchengine.controllers;
 
-import org.springframework.data.jpa.repository.Query;
-import org.springframework.data.repository.query.Param;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import searchengine.dto.responseRequest.ResponseMainRequest;

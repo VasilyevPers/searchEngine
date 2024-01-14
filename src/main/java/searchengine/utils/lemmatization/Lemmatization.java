@@ -4,6 +4,7 @@ import org.apache.lucene.morphology.LuceneMorphology;
 import org.apache.lucene.morphology.english.EnglishLuceneMorphology;
 import org.apache.lucene.morphology.russian.RussianLuceneMorphology;
 import org.jsoup.Jsoup;
+import org.jsoup.safety.Safelist;
 
 import java.io.IOException;
 import java.util.*;
@@ -23,8 +24,7 @@ public class Lemmatization {
         Map<String, Integer> lemmas = new HashMap<>();
         for (String word : wordList) {
 
-            word = word.replaceAll("ё", "e");
-            word = word.replaceAll("[^а-яa-z]", " ").strip();
+            word = removesUnnecessaryCharacters(word);
 
             String normalWord = createNormalWordForm(word);
             if (normalWord == null) continue;
@@ -39,6 +39,7 @@ public class Lemmatization {
         List<String> wordsForSearch = new ArrayList<>();
         String[] words = listSeparating(searchText);
         for (String word : words) {
+            word = removesUnnecessaryCharacters(word);
             String wordForSearch = createNormalWordForm(word);
             if (wordForSearch == null) continue;
             wordsForSearch.add(wordForSearch);
@@ -46,25 +47,10 @@ public class Lemmatization {
         return wordsForSearch;
     }
 
-    public List<String> createNormalWordTypeList (String searchText) {
-        List<String> wordList = new ArrayList<>();
-        String[] words = listSeparating(searchText);
-        for (String word : words) {
-            if (word.isBlank() || word.length() < 2) continue;
-
-            LuceneMorphology luceneMorphology = languageSelection(word);
-            if (luceneMorphology == null) continue;
-
-            List<String> wordBaseForm = luceneMorphology.getMorphInfo(word);
-            if (isChecksWordType(wordBaseForm)) continue;
-
-            wordList.add(word);
-        }
-        return wordList;
-    }
-
-    private String createNormalWordForm(String word) {
+    public String createNormalWordForm(String word)  {
         if (word.isBlank() || word.length() < 2) return null;
+
+        word = removesUnnecessaryCharacters(word);
 
         LuceneMorphology luceneMorphology = languageSelection(word);
         if (luceneMorphology == null) return null;
@@ -76,6 +62,14 @@ public class Lemmatization {
         if (normalForm.isEmpty()) return null;
 
         return normalForm.get(0);
+    }
+
+    private String removesUnnecessaryCharacters (String word) {
+        word = word.toLowerCase(Locale.ROOT);
+        word = word.replaceAll("ё", "e");
+        word = word.replaceAll("[^а-яa-z]", " ").strip();
+
+        return word;
     }
 
     private LuceneMorphology languageSelection(String word) {
@@ -101,11 +95,10 @@ public class Lemmatization {
     }
 
     private String[] listSeparating(String text) {
-        return text.toLowerCase(Locale.ROOT)
-                .split("\\s+");
+        return text.split("\\s+");
     }
 
     private String parseHTML (String html) {
-        return Jsoup.parse(html).text();
+        return Jsoup.clean(html, Safelist.none());
     }
 }

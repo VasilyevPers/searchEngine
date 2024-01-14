@@ -1,71 +1,130 @@
 package searchengine.utils.search;
 
 import org.jsoup.Jsoup;
-import searchengine.dto.createSnippet.IndexPositions;
+import org.jsoup.safety.Safelist;
+import searchengine.dto.createSnippet.CountLemmaInSnippet;
+import searchengine.dto.createSnippet.SearchLemma;
+import searchengine.dto.createSnippet.WordPosition;
 import searchengine.utils.lemmatization.Lemmatization;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
+import java.util.concurrent.ForkJoinPool;
+import java.util.stream.Collectors;
 
 public class CreateSnippet {
-
-    public String createSnippet (String contentPage, String searchText) {
-
-        String[] sentences = Jsoup.parse(contentPage).text().split("[.!?;]");
-        List<String> wordSearch;
+    public String createSnippet (String contentPage,String rareLemma, List<String> lemmaList) {
+        String errorCreateSnippet = "сниппет не найден";
+        if (contentPage == null) return errorCreateSnippet;
+        Lemmatization lemmatization;
         try {
-            wordSearch = new Lemmatization().createNormalWordTypeList(searchText);
+            lemmatization = new Lemmatization();
         } catch (IOException e) {
-            wordSearch = new ArrayList<>();
+            return errorCreateSnippet;
         }
-        StringBuilder snippet = new StringBuilder();
-        for (String sentence : sentences ) {
-            if (sentence.split(" ").length < wordSearch.size()) continue;
+        String clearedText = Jsoup.clean(contentPage, Safelist.none());
 
-            wordSearch.forEach(word -> {
-                String snippetElement = searchSnippets(sentence, word);
-                if (snippetElement != null) {
-                    snippet.append(snippetElement).append("; ");
+        Set<String> textElements = createFragmentsList(clearedText, rareLemma, lemmatization);
+
+        MultiHighlightingWords multiHighlightingWords = new MultiHighlightingWords(textElements.toArray(new String[0]), lemmaList, lemmatization);
+        new ForkJoinPool().invoke(multiHighlightingWords);
+        List<CountLemmaInSnippet> snippetList = multiHighlightingWords.getLemmaCountInTextElement();
+
+        snippetList.sort(Comparator.comparing(CountLemmaInSnippet::getCountLemma)
+                .thenComparing(CountLemmaInSnippet::getRankLemma)
+                .thenComparing(CountLemmaInSnippet::getSnippet)
+                .reversed());
+        return snippetList.get(0).getSnippet();
+    }
+
+    private Set<String> createFragmentsList(String clearedText, String rareLemma, Lemmatization lemmatization) {
+
+        List<WordPosition> wordPositionList = searchLemmaInText(clearedText);
+        List<WordPosition> lemmaPositionList = new ArrayList<>();
+
+        SearchLemma searchLemma = new SearchLemma();
+        searchLemma.setLemmaForSearch(rareLemma);
+        searchLemma.setWordPositionList(wordPositionList.toArray(new WordPosition[0]));
+        searchLemma.setLemmaPositionList(lemmaPositionList);
+        searchLemma.setLemmatization(lemmatization);
+
+        new ForkJoinPool().invoke(new MultiSearchLemma(searchLemma));
+
+        return createsTextElements(lemmaPositionList, clearedText);
+    }
+
+    protected List<WordPosition> searchLemmaInText (String textForSearch) {
+        List<WordPosition> wordPositionList = new ArrayList<>();
+        boolean cycleFlag = true;
+        int indexSearchPosition = 0;
+        while (cycleFlag) {
+            String elementText;
+            try {
+                elementText = textForSearch.substring(indexSearchPosition, textForSearch.indexOf(" ", indexSearchPosition));
+            } catch (StringIndexOutOfBoundsException e) {
+                elementText = textForSearch.substring(indexSearchPosition);
+                cycleFlag = false;
+            }
+
+            String word = elementText.replaceAll("ё", "е")
+                    .replaceAll("[^а-яa-z]", " ")
+                    .strip();
+            if (word.length() < 2 || word.contains(" ")) {
+                indexSearchPosition = changesStartIndex(indexSearchPosition, elementText);
+                continue;
+            }
+            WordPosition wordPosition = new WordPosition();
+            wordPosition.setWordPosition(indexSearchPosition);
+            wordPosition.setWord(elementText);
+            wordPositionList.add(wordPosition);
+            indexSearchPosition = changesStartIndex(indexSearchPosition, elementText);
+        }
+        return wordPositionList;
+    }
+
+    private Set<String> createsTextElements(List<WordPosition> lemmaPositionList, String text) {
+        Set<String> textElements = new TreeSet<>();
+        for (WordPosition wordPosition : lemmaPositionList) {
+            int wordStartPosition = wordPosition.getWordPosition();
+
+            int fragmentStart = wordStartPosition - 50;
+            int fragmentFinish = wordStartPosition + 160;
+
+            if (fragmentStart < 0) {
+                fragmentFinish += (fragmentStart * -1);
+                fragmentStart = 0;
+                if (fragmentFinish > text.length() - 1) fragmentFinish = text.length() - 1;
+            }
+
+            if (fragmentFinish > text.length() - 1) {
+                fragmentStart -= fragmentFinish - (text.length() - 1);
+                fragmentFinish = text.length() - 1;
+                if (fragmentStart < 0) fragmentStart = 0;
+            }
+
+            String firstElementFragment;
+            if (fragmentStart == 0) {
+                firstElementFragment = text.substring(fragmentStart, wordStartPosition);
+            } else {
+                firstElementFragment = text.substring(text.indexOf(" ", fragmentStart) + 1, wordStartPosition);
+            }
+
+            String secondElementFragment;
+            if (fragmentFinish == text.length() - 1) {
+                secondElementFragment = text.substring(wordStartPosition);
+            } else {
+                try {
+                    secondElementFragment = text.substring(wordStartPosition, text.indexOf(" ", fragmentFinish));
+                } catch (StringIndexOutOfBoundsException e) {
+                    secondElementFragment = text.substring(wordStartPosition);
                 }
-            });
-            if (snippet.length() > 200) break;
+            }
+            textElements.add(firstElementFragment + secondElementFragment);
         }
-
-        return String.valueOf(snippet);
+        return textElements;
     }
 
-    private String searchSnippets (String sentence, String wordSearch) {
-        if (!sentence.contains(wordSearch)) return null;
-
-        IndexPositions indexPositions = new IndexPositions();
-        indexPositions.setSentence(sentence);
-        indexPositions.setWordSearch(wordSearch);
-        indexPositions.setWordStart(sentence.indexOf(wordSearch));
-        indexPositions.setWordFinish(indexPositions.getWordStart() + wordSearch.length());
-        indexPositions.setSnippetStart(indexPositions.getWordStart() - 15);
-        indexPositions.setSnippetFinish(indexPositions.getWordFinish() + 35);
-
-        return highlightsSnippets(indexPositions);
-    }
-
-    private String highlightsSnippets (IndexPositions indexPositions) {
-        String firstElementSnippet;
-        try {
-            firstElementSnippet = indexPositions.getSentence().substring(indexPositions.getSentence().indexOf(" ", indexPositions.getSnippetStart()),
-                                                                         indexPositions.getWordStart());
-        } catch (StringIndexOutOfBoundsException e) {
-            firstElementSnippet = indexPositions.getSentence().substring(0, indexPositions.getWordStart() + 1);
-        }
-        String searchWord = "<b>" + indexPositions.getWordSearch() + "</b>";
-
-        String secondElementSnippet;
-        try {
-            secondElementSnippet = indexPositions.getSentence().substring(indexPositions.getWordFinish(),
-                                                                          indexPositions.getSentence().indexOf(" ", indexPositions.getSnippetFinish()));
-        } catch (StringIndexOutOfBoundsException e) {
-            secondElementSnippet = indexPositions.getSentence().substring(indexPositions.getWordFinish(), indexPositions.getSentence().length() - 1);
-        }
-        return firstElementSnippet + searchWord + secondElementSnippet;
+    private int changesStartIndex (int startIndex, String word) {
+        return startIndex + word.length() + 1;
     }
 }

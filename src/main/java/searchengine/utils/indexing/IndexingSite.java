@@ -30,16 +30,13 @@ public class IndexingSite extends RecursiveAction {
     private Site site;
     private  String linkForIndexing;
 
-    private IndexingSite(SiteRepository siteRepository, PageRepository pageRepository,
-                        IndexRepository indexRepository, LemmaRepository lemmaRepository,
-                        Site site,
-                        String absLinkForIndexing) {
-        this.siteRepository = siteRepository;
-        this.pageRepository = pageRepository;
-        this.indexRepository = indexRepository;
-        this.lemmaRepository = lemmaRepository;
-        this.site = site;
-        this.linkForIndexing = connectionUtils.correctsTheLink(absLinkForIndexing);
+    private IndexingSite (IndexingSiteBuilding indexingSiteBuilding) {
+        siteRepository = indexingSiteBuilding.siteRepository;
+        pageRepository = indexingSiteBuilding.pageRepository;
+        indexRepository = indexingSiteBuilding.indexRepository;
+        lemmaRepository = indexingSiteBuilding.lemmaRepository;
+        site = indexingSiteBuilding.site;
+        linkForIndexing = connectionUtils.correctsTheLink(indexingSiteBuilding.linkForIndexing);
     }
 
     @Override
@@ -161,13 +158,6 @@ public class IndexingSite extends RecursiveAction {
             return new IndexingSite(this);
         }
     }
-    private IndexingSite (IndexingSiteBuilding indexingSiteBuilding) {
-        siteRepository = indexingSiteBuilding.siteRepository;
-        pageRepository = indexingSiteBuilding.pageRepository;
-        indexRepository = indexingSiteBuilding.indexRepository;
-        lemmaRepository = indexingSiteBuilding.lemmaRepository;
-        site = indexingSiteBuilding.site;
-        linkForIndexing = indexingSiteBuilding.linkForIndexing;
-    }
+
 }
 

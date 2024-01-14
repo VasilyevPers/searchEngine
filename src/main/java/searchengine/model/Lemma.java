@@ -9,7 +9,7 @@ import java.util.List;
 @Entity
 @Data
 @NoArgsConstructor
-@Table(name = "lemmas")
+@Table(name = "lemmas", indexes = {@javax.persistence.Index(name = "'index'",columnList = "lemma, site_id", unique = true)})
 public class Lemma {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

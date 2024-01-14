@@ -8,7 +8,7 @@ import javax.persistence.*;
 @Entity
 @Data
 @NoArgsConstructor
-@Table(name = "`index`")
+@Table(name = "`index`", indexes = {@javax.persistence.Index(name = "'index'", columnList = "page_id, lemma_id", unique = true)})
 public class Index {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

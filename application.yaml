@@ -30,3 +30,6 @@ indexing-settings:
       name: Дом Булгакова
     - url: https://playback.ru/
       name: PlayBack.Ru
+
+search-limit:
+    limit: 20

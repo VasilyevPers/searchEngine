@@ -10,5 +10,6 @@ import java.util.List;
 @Repository
 public interface SiteRepository extends JpaRepository<Site, Integer> {
     Site findByUrl (String url);
+    Site findById (int id);
 
 }
