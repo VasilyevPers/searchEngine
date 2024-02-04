@@ -51,7 +51,7 @@ public class MultiHighlightingWords extends RecursiveAction {
             int shiftpositionWord = 0;
 
             for (String lemma : lemmaList) {
-                List<WordPosition> lemmaPosition = new ArrayList<>();
+                List<WordPosition> lemmaPosition = new CopyOnWriteArrayList<>();
                 SearchLemma searchLemma = new SearchLemma();
                 searchLemma.setWordPositionList(wordPositionList.toArray(new WordPosition[0]));
                 searchLemma.setLemmaForSearch(lemma);

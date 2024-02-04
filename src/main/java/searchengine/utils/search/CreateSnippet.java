@@ -9,19 +9,14 @@ import searchengine.utils.lemmatization.Lemmatization;
 
 import java.io.IOException;
 import java.util.*;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.ForkJoinPool;
 import java.util.stream.Collectors;
 
 public class CreateSnippet {
-    public String createSnippet (String contentPage,String rareLemma, List<String> lemmaList) {
+    public String createSnippet (String contentPage,String rareLemma, List<String> lemmaList, Lemmatization lemmatization) {
         String errorCreateSnippet = "сниппет не найден";
-        if (contentPage == null) return errorCreateSnippet;
-        Lemmatization lemmatization;
-        try {
-            lemmatization = new Lemmatization();
-        } catch (IOException e) {
-            return errorCreateSnippet;
-        }
+        if (contentPage == null || lemmaList == null) return errorCreateSnippet;
         String clearedText = Jsoup.clean(contentPage, Safelist.none());
 
         Set<String> textElements = createFragmentsList(clearedText, rareLemma, lemmatization);
@@ -40,7 +35,7 @@ public class CreateSnippet {
     private Set<String> createFragmentsList(String clearedText, String rareLemma, Lemmatization lemmatization) {
 
         List<WordPosition> wordPositionList = searchLemmaInText(clearedText);
-        List<WordPosition> lemmaPositionList = new ArrayList<>();
+        List<WordPosition> lemmaPositionList = new CopyOnWriteArrayList<>();
 
         SearchLemma searchLemma = new SearchLemma();
         searchLemma.setLemmaForSearch(rareLemma);
@@ -66,9 +61,7 @@ public class CreateSnippet {
                 cycleFlag = false;
             }
 
-            String word = elementText.replaceAll("ё", "е")
-                    .replaceAll("[^а-яa-z]", " ")
-                    .strip();
+            String word = elementText.replaceAll("[^А-ЯA-Zа-яa-z]", " ").strip();
             if (word.length() < 2 || word.contains(" ")) {
                 indexSearchPosition = changesStartIndex(indexSearchPosition, elementText);
                 continue;

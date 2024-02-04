@@ -44,18 +44,22 @@ public class StatisticsServiceImpl implements StatisticsService {
     @Override
     public StatisticsResponse getStatistics() {
         List<Site> sites = siteRepository.findAll();
-        StatisticsData data = new StatisticsData();
-        TotalStatistics total = new TotalStatistics();
-        total.setSites(sites.size());
-        total.setPages((int) pageRepository.count());
-        total.setLemmas((int) lemmaRepository.count());
-        total.setIndexing(!siteIndexing.isCheckIndexingStatus());
 
-        data.setTotal(total);
+
         List<DetailedStatisticsItem> detailedList = new ArrayList<>();
         for (Site site : sites) {
             detailedList.add(createSiteDetail(site));
         }
+        TotalStatistics total = new TotalStatistics();
+        total.setSites(sites.size());
+        detailedList.forEach(detailedStatistics -> {
+            total.setPages(total.getPages() + detailedStatistics.getPages());
+            total.setLemmas(total.getLemmas() + detailedStatistics.getLemmas());
+        });
+        total.setIndexing(!siteIndexing.isCheckIndexingStatus());
+
+        StatisticsData data = new StatisticsData();
+        data.setTotal(total);
         data.setDetailed(detailedList);
 
         StatisticsResponse response = new StatisticsResponse();

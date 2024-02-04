@@ -14,10 +14,10 @@ public class MultiSearchLemma extends RecursiveAction {
     private List<WordPosition> lemmaPositionList;
     private Lemmatization lemmatization;
     public MultiSearchLemma (SearchLemma searchLemma) {
-        this.wordPositionList = searchLemma.getWordPositionList();
-        this.lemmaForSearch = searchLemma.getLemmaForSearch();
+        wordPositionList = searchLemma.getWordPositionList();
+        lemmaForSearch = searchLemma.getLemmaForSearch();
         lemmaPositionList = searchLemma.getLemmaPositionList();
-        this.lemmatization = searchLemma.getLemmatization();
+        lemmatization = searchLemma.getLemmatization();
     }
 
     @Override

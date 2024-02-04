@@ -23,9 +23,20 @@ public interface PageRepository extends JpaRepository<Page, Integer> {
             "FROM pages p " +
             "JOIN `index` i on i.page_id = p.id " +
             "JOIN lemmas l on i.lemma_id = l.id " +
-            "WHERE l.id =? ",
+            "WHERE l.lemma = :lemma AND l.site_id = :siteId",
             nativeQuery = true)
-    List<Integer> findPageIdByLemmaId (int id);
+    List<Integer> findPageIdByLemmaAndSiteId (@Param(value = "lemma") String lemma,
+                                              @Param(value = "siteId") int siteId);
+
+
+    @Query(value = "SELECT p.id " +
+            "FROM pages p " +
+            "JOIN `index` i on i.page_id = p.id " +
+            "JOIN lemmas l on i.lemma_id = l.id " +
+            "WHERE l.lemma =? ",
+            nativeQuery = true)
+    List<Integer> findPageIdByLemma (String lemma);
+
 
     List<Page> findAllByIdIn (Collection<Integer> id);
 }

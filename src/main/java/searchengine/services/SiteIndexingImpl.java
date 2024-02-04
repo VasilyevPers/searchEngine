@@ -17,7 +17,6 @@ import searchengine.utils.indexing.IndexingPage;
 import searchengine.utils.indexing.IndexingSite;
 import searchengine.utils.search.SearchPage;
 
-import java.io.IOException;
 import java.time.LocalDateTime;
 import java.util.*;
 import java.util.concurrent.*;
@@ -150,12 +149,17 @@ public class SiteIndexingImpl implements SiteIndexing {
 
     @Override
     public SearchRequest search(String searchText, String site, int offset, int limit) {
+        long start = System.currentTimeMillis();
 
-        return new SearchPage.SearchPageBuilding(searchText, site).siteRepository(siteRepository)
+        SearchRequest searchRequest = new SearchPage.SearchPageBuilding(searchText, site).siteRepository(siteRepository)
                 .pageRepository(pageRepository)
                 .indexRepository(indexRepository)
                 .lemmaRepository(lemmaRepository)
                 .searchPage().search(offset, limit);
+
+        System.out.println("Общее время ответа составило: " + (System.currentTimeMillis() - start));
+
+        return searchRequest;
 
     }
 }
