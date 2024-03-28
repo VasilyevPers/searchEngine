@@ -42,6 +42,7 @@ public class Lemmatization {
             word = removesUnnecessaryCharacters(word);
             String wordForSearch = createNormalWordForm(word);
             if (wordForSearch == null) continue;
+            if (wordsForSearch.contains(wordForSearch)) continue;
             wordsForSearch.add(wordForSearch);
         }
         return wordsForSearch;
