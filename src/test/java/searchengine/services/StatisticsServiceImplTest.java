@@ -8,7 +8,7 @@ import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.http.ResponseEntity;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
-import org.testcontainers.containers.PostgreSQLContainer;
+import org.testcontainers.containers.MySQLContainer;
 import searchengine.dto.statistics.StatisticsResponse;
 import searchengine.model.*;
 import searchengine.repositories.IndexRepository;
@@ -33,24 +33,23 @@ public class StatisticsServiceImplTest {
     @Autowired
     private LemmaRepository lemmaRepository;
     private TestRestTemplate template = new TestRestTemplate();
-    public static PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>("postgres:14");
-    public static MysqlContainer<?> container = new MysqlContainer<>();
+    public static MySQLContainer<?> mysql = new MySQLContainer<>("mysql:5.7.37");
 
     @BeforeAll
     public static void beforeAll () {
-        postgres.start();
+        mysql.start();
     }
 
     @AfterAll
     public static void afterAll () {
-        postgres.stop();
+        mysql.stop();
     }
 
     @DynamicPropertySource
     public static void configureProperties (DynamicPropertyRegistry registry) {
-        registry.add("spring.datasource.url", postgres::getJdbcUrl);
-        registry.add("spring.datasource.username", postgres::getUsername);
-        registry.add("spring.datasource.password", postgres::getPassword);
+        registry.add("spring.datasource.url", mysql::getJdbcUrl);
+        registry.add("spring.datasource.username", mysql::getUsername);
+        registry.add("spring.datasource.password", mysql::getPassword);
     }
 
     @BeforeEach
@@ -79,6 +78,7 @@ public class StatisticsServiceImplTest {
             page.setPath("/path:" + i + "/");
             page.setSite(site);
             page.setCode(200);
+            pageList.add(page);
         }
         return pageList;
     }
@@ -92,6 +92,7 @@ public class StatisticsServiceImplTest {
             lemma.setLemma("page: " + pageNumber + " lemma: " + lemmaNumber);
             lemma.setSite(site);
             lemma.setFrequency(1);
+            lemmaList.add(lemma);
             lemmaNumber++;
             if (lemmaNumber == 3) {
                 pageNumber++;
@@ -109,6 +110,7 @@ public class StatisticsServiceImplTest {
                 index.setPage(page);
                 index.setRank(1);
                 index.setLemma(lemmaList.get(i - 1));
+                indexList.add(index);
             }
         }
         return indexList;
@@ -122,7 +124,7 @@ public class StatisticsServiceImplTest {
     @Test
     public void getStatisticsTest () {
         ResponseEntity<StatisticsResponse> response = template.getRestTemplate()
-                .getForEntity("http://lacalhost:" + port + "/statistics", StatisticsResponse.class);
+                .getForEntity("http://localhost:" + port + "/api/statistics", StatisticsResponse.class);
 
         assertTrue(response.getStatusCode().is2xxSuccessful());
         assertEquals(1, response.getBody().getStatistics().getTotal().getSites());
