@@ -11,7 +11,7 @@ import java.util.List;
 import java.util.Objects;
 
 @Entity
-@Table(name = "pages", indexes = {@Index(name = "index", columnList = "path, site_id", unique = true)})
+@Table(name = "pages", indexes = {@Index(name = "'index'", columnList = "path, site_id", unique = true)})
 @Getter
 @Setter
 @NoArgsConstructor
@@ -29,7 +29,7 @@ public class Page {
     @Column(nullable = false)
     private int code;
 
-    @Column(columnDefinition = "MEDIUMTEXT", nullable = false)
+    @Column(columnDefinition = "TEXT", nullable = false)
     private String content;
 
     @OneToMany(fetch = FetchType.LAZY, cascade = CascadeType.REMOVE,

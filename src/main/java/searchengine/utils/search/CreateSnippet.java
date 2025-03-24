@@ -7,15 +7,14 @@ import searchengine.dto.createSnippet.SearchLemma;
 import searchengine.dto.createSnippet.WordPosition;
 import searchengine.utils.lemmatization.Lemmatization;
 
-import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.ForkJoinPool;
-import java.util.stream.Collectors;
 
 public class CreateSnippet {
+
     public String createSnippet (String contentPage,String rareLemma, List<String> lemmaList, Lemmatization lemmatization) {
-        String errorCreateSnippet = "сниппет не найден";
+        String errorCreateSnippet = "Сниппет не найден.";
         if (contentPage == null || lemmaList == null) return errorCreateSnippet;
         String clearedText = Jsoup.clean(contentPage, Safelist.none());
 

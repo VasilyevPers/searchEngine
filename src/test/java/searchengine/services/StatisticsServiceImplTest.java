@@ -8,7 +8,7 @@ import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.http.ResponseEntity;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
-import org.testcontainers.containers.MySQLContainer;
+import org.testcontainers.containers.PostgreSQLContainer;
 import searchengine.dto.statistics.StatisticsResponse;
 import searchengine.model.*;
 import searchengine.repositories.IndexRepository;
@@ -33,7 +33,7 @@ public class StatisticsServiceImplTest {
     @Autowired
     private LemmaRepository lemmaRepository;
     private TestRestTemplate template = new TestRestTemplate();
-    public static MySQLContainer<?> mysql = new MySQLContainer<>("mysql:5.7.37");
+    public static PostgreSQLContainer<?> mysql = new PostgreSQLContainer<>("postgres");
 
     @BeforeAll
     public static void beforeAll () {
@@ -55,7 +55,7 @@ public class StatisticsServiceImplTest {
     @BeforeEach
     public void fillingDatabase () {
         Site site = new Site();
-        site.setStatus(StatusIndexing.INDEXED);
+        site.setStatus(Site.StatusIndexing.INDEXED);
         site.setUrl("https://www.site.ru");
         site.setName("Site");
         site.setStatusTime(LocalDateTime.now());
@@ -123,7 +123,7 @@ public class StatisticsServiceImplTest {
 
     @Test
     public void getStatisticsTest () {
-        ResponseEntity<StatisticsResponse> response = template.getRestTemplate()
+        ResponseEntity<StatisticsResponse> response = template
                 .getForEntity("http://localhost:" + port + "/api/statistics", StatisticsResponse.class);
 
         assertTrue(response.getStatusCode().is2xxSuccessful());

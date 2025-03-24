@@ -9,7 +9,6 @@ import searchengine.services.StatisticsService;
 
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
-
 @RestController
 @RequestMapping("/api")
 public class ApiController {

@@ -3,7 +3,6 @@ import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
-import searchengine.config.SiteConfig;
 import searchengine.model.Index;
 import searchengine.model.Lemma;
 import searchengine.model.Page;
@@ -13,6 +12,7 @@ import searchengine.repositories.LemmaRepository;
 import searchengine.repositories.PageRepository;
 import searchengine.repositories.SiteRepository;
 import searchengine.services.SiteIndexingImpl;
+import searchengine.utils.CustomExceptions;
 import searchengine.utils.lemmatization.CreateLemmaAndIndex;
 import searchengine.utils.lemmatization.UpdateLemma;
 import java.io.IOException;
@@ -40,44 +40,62 @@ public class IndexingSite extends RecursiveAction {
     }
 
     @Override
-    protected void compute() {
+    protected void compute() throws RuntimeException{
         Map<String, Page> elementsOnThePage = new HashMap<>();
         List<String> continuingIndexing = new ArrayList<>();
-        List<String> allPathList;
-        synchronized (site.getUrl()){
-            allPathList = pageRepository.findAllPathBySiteId(site.getId());
+        List<String> allPathList = new ArrayList<>();
+        if (!SiteIndexingImpl.getStopIndexing().get()) {
+            synchronized (site.getUrl()){
+                allPathList = pageRepository.findAllPathBySiteId(site.getId());
+            }
         }
+        Elements elements;
         try {
             Document urlCode = Jsoup.connect(linkForIndexing).get();
             Thread.sleep(150);
-            Elements elements = urlCode.select("a");
-            if (SiteIndexingImpl.getStopIndexing().get())
-                elements = new Elements();
-
-            for (Element element : elements) {
-                if (SiteIndexingImpl.getStopIndexing().get()) break;
-                Page pageForSave = createPageForSaving(element, allPathList, elementsOnThePage);
-                if (pageForSave == null) continue;
-                String absUrl = element.absUrl("href");
-                elementsOnThePage.put(absUrl, pageForSave);
-            }
-            saveBDAndContinuingIndexing(elementsOnThePage, continuingIndexing);
-            if (!SiteIndexingImpl.getStopIndexing().get())
-                ranRecursionIndexing(continuingIndexing);
+            elements = urlCode.select("a");
         } catch (IOException | InterruptedException e) {
-            System.out.println(e.getMessage());
+            elements = new Elements();
+            }
+
+        if (SiteIndexingImpl.getStopIndexing().get()) {
+            elements.clear();
+        };
+
+        for (Element element : elements) {
+            if (SiteIndexingImpl.getStopIndexing().get())
+                break;
+            Page pageForSave = createPageForSaving(element, allPathList, elementsOnThePage);
+            if (pageForSave == null) continue;
+            String absUrl = element.absUrl("href");
+            elementsOnThePage.put(absUrl, pageForSave);
+        }
+        if (!SiteIndexingImpl.getStopIndexing().get()) {
+            saveBDAndContinuingIndexing(elementsOnThePage, continuingIndexing);
+            ranRecursionIndexing(continuingIndexing);
         }
     }
 
-    private Page createPageForSaving (Element element, List<String> allPathList, Map<String, Page> elementsOnThePage) throws IOException {
+    private Page createPageForSaving (Element element, List<String> allPathList, Map<String, Page> elementsOnThePage) {
         String pagePath = element.attr("href");
         String absUrl = element.absUrl("href");
-        if (elementsOnThePage.containsKey(pagePath) || allPathList.contains(pagePath)) return null;
-        if (!connectionUtils.isCheckAffiliationSite(site.getUrl(), absUrl) || connectionUtils.isRemovesUnnecessaryLinks(pagePath)) return null;
+        if (elementsOnThePage.containsKey(pagePath) || allPathList.contains(pagePath))
+            return null;
+        if (!connectionUtils.isCheckAffiliationSite(site.getUrl(), absUrl) ||
+             connectionUtils.isRemovesUnnecessaryLinks(pagePath))
+            return null;
         Page pageForSave = new Page();
         pageForSave.setCode(connectionUtils.requestResponseCode(absUrl));
-        if (pageForSave.getCode() != 200) return null;
-        pageForSave.setContent(Jsoup.connect(absUrl).get().html());
+        if (pageForSave.getCode() != 200)
+            return null;
+        try {
+            pageForSave.setContent(Jsoup.connect(absUrl).get().html());
+        } catch (IOException e) {
+
+            /* Реализация логирования */
+
+            return null;
+        }
         pageForSave.setPath(pagePath);
         pageForSave.setSite(site);
 
@@ -91,14 +109,17 @@ public class IndexingSite extends RecursiveAction {
         for (Map.Entry<String, Page> entry : elementsOnThePage.entrySet()) {
             try {
                 new CreateLemmaAndIndex().createLemmaAndIndex(entry.getValue());
-            } catch (IOException e) {
-                System.out.println(e.getMessage());
+            } catch (CustomExceptions.LemmatizationConnectException e) {
+
+                /* Реализация логирования */
+
             }
         }
         synchronized (site.getUrl()) {
             List<String> allPathList = pageRepository.findAllPathBySiteId(site.getId());
             for (Map.Entry<String, Page> entry : elementsOnThePage.entrySet()) {
-                if (allPathList.contains(entry.getValue().getPath())) continue;
+                if (allPathList.contains(entry.getValue().getPath()) ||
+                    entry.getValue().getIndexList().isEmpty()) continue;
                 if (entry.getValue().getPath().length() > 1) continuingIndexing.add(entry.getKey());
                 new CreateLemmaAndIndex().createListLemmaAndIndex(entry.getValue(), indexForSaving, lemmaList);
             }

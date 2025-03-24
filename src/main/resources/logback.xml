@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+    <appender name="Console" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <pattern>%d{dd.MM.yyyy HH:mm:ss.SSS} [%thread] %-5level %logger{20} - %msg%n</pattern>
+        </encoder>
+    </appender>
+
+    <appender name="FullSiteIndexing"
+              class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>FullSiteIndexing.log</file>
+        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+            <fileNamePattern>FullSiteIndexing.%d{yyyy-MM-dd}.log</fileNamePattern>
+            <maxHistory>5</maxHistory>
+            <totalSizeCap>100MB</totalSizeCap>
+        </rollingPolicy>
+        <encoder>
+            <pattern>%d{dd.MM.yyyy HH:mm:ss.SSS} [%thread] %-5level  %logger{36} - %msg%n</pattern>
+        </encoder>
+    </appender>
+
+    <appender name="PageIndexing"
+              class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>PageIndexing.log</file>
+        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+            <fileNamePattern>PageIndexing.%d{yyyy-MM-dd}.log</fileNamePattern>
+            <maxHistory>5</maxHistory>
+            <totalSizeCap>100MB</totalSizeCap>
+        </rollingPolicy>
+        <encoder>
+            <pattern>%d{dd.MM.yyyy HH:mm:ss.SSS} [%thread] %-5level  %logger{36} - %msg%n</pattern>
+        </encoder>
+    </appender>
+
+    <root level="info">
+        <appender-ref ref="Console" />
+    </root>
+
+    <logger name="searchengine.services.SiteIndexingImpl" level="info" additivity = "false">
+        <appender-ref ref="FullSiteIndexing" />
+    </logger>
+    <logger name="searchengine.utils.indexing.IndexingPage" level="info" additivity="false">
+        <appender-ref ref="PageIndexing"/>
+    </logger>
+</configuration>

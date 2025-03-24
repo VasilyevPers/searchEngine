@@ -19,23 +19,23 @@ public interface PageRepository extends JpaRepository<Page, Integer> {
 
     int countBySiteId (int siteId);
 
-    @Query(value = "SELECT p.id " +
-            "FROM pages p " +
-            "JOIN `index` i on i.page_id = p.id " +
-            "JOIN lemmas l on i.lemma_id = l.id " +
-            "WHERE l.lemma = :lemma AND l.site_id = :siteId",
-            nativeQuery = true)
-    List<Integer> findPageIdByLemmaAndSiteId (@Param(value = "lemma") String lemma,
-                                              @Param(value = "siteId") int siteId);
-
-
-    @Query(value = "SELECT p.id " +
-            "FROM pages p " +
-            "JOIN `index` i on i.page_id = p.id " +
-            "JOIN lemmas l on i.lemma_id = l.id " +
-            "WHERE l.lemma =? ",
-            nativeQuery = true)
-    List<Integer> findPageIdByLemma (String lemma);
+//    @Query(value = "SELECT p.id " +
+//            "FROM pages p " +
+//            "JOIN `index` i on i.page_id = p.id " +
+//            "JOIN lemmas l on i.lemma_id = l.id " +
+//            "WHERE l.lemma = :lemma AND l.site_id = :siteId",
+//            nativeQuery = true)
+//    List<Integer> findPageIdByLemmaAndSiteId (@Param(value = "lemma") String lemma,
+//                                              @Param(value = "siteId") int siteId);
+//
+//
+//    @Query(value = "SELECT p.id " +
+//            "FROM pages p " +
+//            "JOIN `index` i on i.page_id = p.id " +
+//            "JOIN lemmas l on i.lemma_id = l.id " +
+//            "WHERE l.lemma =? ",
+//            nativeQuery = true)
+//    List<Integer> findPageIdByLemma (String lemma);
 
 
     List<Page> findAllByIdIn (Collection<Integer> id);

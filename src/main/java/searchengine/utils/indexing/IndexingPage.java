@@ -1,12 +1,16 @@
 package searchengine.utils.indexing;
 
 import org.jsoup.Jsoup;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import searchengine.config.SiteConfig;
+import searchengine.dto.responseRequest.RequestStatus;
 import searchengine.model.*;
 import searchengine.repositories.IndexRepository;
 import searchengine.repositories.LemmaRepository;
 import searchengine.repositories.PageRepository;
 import searchengine.repositories.SiteRepository;
+import searchengine.utils.CustomExceptions;
 import searchengine.utils.lemmatization.CreateLemmaAndIndex;
 import searchengine.utils.lemmatization.UpdateLemma;
 
@@ -21,6 +25,8 @@ public class IndexingPage {
     private PageRepository pageRepository;
     private IndexRepository indexRepository;
     private LemmaRepository lemmaRepository;
+    private RequestStatus requestStatus = new RequestStatus();
+    public static final Logger pageLog = LoggerFactory.getLogger(IndexingPage.class);
 
     private IndexingPage(SiteRepository siteRepository, PageRepository pageRepository,
                         IndexRepository indexRepository, LemmaRepository lemmaRepository) {
@@ -30,7 +36,7 @@ public class IndexingPage {
         this.lemmaRepository = lemmaRepository;
     }
 
-    public final void indexPage (SiteConfig siteConfig, String path) {
+    public final RequestStatus indexPage (SiteConfig siteConfig, String path) {
         List<Index> indexForSaving = new ArrayList<>();
         Map<String, Lemma> lemmaList = new HashMap<>();
         path = connectionUtils.correctsTheLink(path);
@@ -38,30 +44,41 @@ public class IndexingPage {
         if (site == null) {
             site = new Site();
             site.setLastError(null);
-            site.setStatus(StatusIndexing.INDEXING);
+            site.setStatus(Site.StatusIndexing.INDEXING);
             site.setName(siteConfig.getName());
             site.setUrl(siteConfig.getUrl());
             site.setStatusTime(LocalDateTime.now());
         }
         Page page = searchPageInBD(path);
-        try {
-            if (page != null) {
-                deletesOrUpdatesPageData(page.getId());
-            }
-            page = createPage(site, path);
 
-            createLemmaAndIndex.createLemmaAndIndex(page);
-            createLemmaAndIndex.createListLemmaAndIndex(page, indexForSaving, lemmaList);
-
-            Map<String, Lemma> lemmaForSaving = new UpdateLemma().updateLemma(lemmaRepository, indexForSaving, lemmaList);
-            site.setStatus(StatusIndexing.INDEXED);
-            site.setStatusTime(LocalDateTime.now());
-            siteRepository.save(site);
-            lemmaRepository.saveAll(lemmaForSaving.values());
-            indexRepository.saveAll(indexForSaving);
-        } catch (IOException e) {
-            System.out.println("страница не доступна");
+        if (page != null) {
+            deletesOrUpdatesPageData(page.getId());
         }
+        try {
+            page = createPage(site, path);
+            createLemmaAndIndex.createLemmaAndIndex(page);
+        } catch (CustomExceptions.PageConnectException e) {
+            requestStatus.setError(e.getMessage() + " Проверьте правильность написания адреса страницы или попробуйте позже.");
+            return requestStatus;
+        } catch (CustomExceptions.LemmatizationConnectException e) {
+            requestStatus.setError(e.getMessage() + " Невозможно установить соединение с сервером. Попробуйте позже.");
+            pageLog.warn("Ошибка индексации страницы: {} {}", path, e.getMessage());
+            return requestStatus;
+        } catch (CustomExceptions.ContentRequestException e) {
+            requestStatus.setError(e.getMessage() + "Не удалось получить данные с запрашиваемой страницы. Попробуйте позже.");
+            return requestStatus;
+        }
+        createLemmaAndIndex.createListLemmaAndIndex(page, indexForSaving, lemmaList);
+
+        Map<String, Lemma> lemmaForSaving = new UpdateLemma().updateLemma(lemmaRepository, indexForSaving, lemmaList);
+        site.setStatus(Site.StatusIndexing.INDEXED);
+        site.setStatusTime(LocalDateTime.now());
+        siteRepository.save(site);
+        lemmaRepository.saveAll(lemmaForSaving.values());
+        indexRepository.saveAll(indexForSaving);
+
+        requestStatus.setStatus(true);
+        return requestStatus;
     }
 
     private Page searchPageInBD(String path) {
@@ -78,11 +95,25 @@ public class IndexingPage {
         return page;
     }
 
-    private Page createPage(Site site, String path) throws IOException {
+    private Page createPage(Site site, String path) throws CustomExceptions.PageConnectException, CustomExceptions.ContentRequestException {
+        int pageResponseCode = connectionUtils.requestResponseCode(path);
+        String errorMessageForLog = "Ошибка индексации страницы: ";
+        if (pageResponseCode != 200) {
+            String errorMessageForException = "Страница не доступна!";
+            pageLog.warn("{} {} {} Код ответа: {}", errorMessageForLog, path,errorMessageForException, pageResponseCode);
+            throw new CustomExceptions.PageConnectException(errorMessageForException);
+        }
         Page pageForReindexing = new Page();
         pageForReindexing.setSite(site);
-        pageForReindexing.setCode(connectionUtils.requestResponseCode(path));
-        pageForReindexing.setContent(Jsoup.connect(path).get().html());
+        pageForReindexing.setCode(pageResponseCode);
+        try {
+            pageForReindexing.setContent(Jsoup.connect(path).get().html());
+        } catch (IOException e) {
+            String errorMessageForException = "Ошибка при получении контента!";
+            pageLog.warn("{} {} {}", errorMessageForLog, path, errorMessageForException);
+            throw new CustomExceptions.ContentRequestException(errorMessageForException);
+        }
+
         pageForReindexing.setPath(path);
 
         return pageForReindexing;
@@ -142,4 +173,6 @@ public class IndexingPage {
         indexRepository = indexingPageBuilding.indexRepository;
         lemmaRepository = indexingPageBuilding.lemmaRepository;
     }
+
+
 }

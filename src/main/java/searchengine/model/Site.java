@@ -20,10 +20,10 @@ public class Site {
     private int id;
 
     @Enumerated(EnumType.STRING)
-    @Column(columnDefinition = "ENUM('INDEXING', 'INDEXED', 'FAILED')", nullable = false)
+    @Column(nullable = false)
     private StatusIndexing status;
 
-    @Column(name = "status_time", columnDefinition = "DATETIME", nullable = false)
+    @Column(name = "status_time", columnDefinition = "TIMESTAMP", nullable = false)
     private LocalDateTime statusTime;
 
     @Column(name = "last_error", columnDefinition = "TEXT")
@@ -44,4 +44,10 @@ public class Site {
             orphanRemoval = true,
             mappedBy = "site")
     private List<Page> pages = new ArrayList<>();
+
+    public enum StatusIndexing {
+        INDEXING,
+        INDEXED,
+        FAILED;
+    }
 }

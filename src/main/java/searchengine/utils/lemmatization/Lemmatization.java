@@ -84,7 +84,8 @@ public class Lemmatization {
         return null;
     }
     private boolean isChecksWordType(List<String> wordBaseForms) {
-        return wordBaseForms.stream().anyMatch(this::hasParticleProperty);
+        return wordBaseForms.stream()
+                .anyMatch(this::hasParticleProperty);
     }
     private boolean hasParticleProperty(String wordBase) {
         for (String property : PARTICLES_NAMES) {

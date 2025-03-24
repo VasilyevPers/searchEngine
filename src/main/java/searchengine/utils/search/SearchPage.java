@@ -155,7 +155,8 @@ public class SearchPage {
             foundPage.setSiteName(siteOnPath.getName());
             foundPage.setUri(editsThePath(page.getPath()));
             foundPage.setTitle(Jsoup.parse(page.getContent()).title());
-            foundPage.setSnippet(new CreateSnippet().createSnippet(page.getContent(), rareLemma, lemmaList, lemmatization));
+            foundPage.setSnippet(lemmatization == null ? "Сниппет не найден." :
+                                                         new CreateSnippet().createSnippet(page.getContent(), rareLemma, lemmaList, lemmatization));
             foundPage.setRelevance(lookingPagesId.get(page.getId()));
             foundPages.add(foundPage);
         }

@@ -10,7 +10,7 @@ import java.util.List;
 
 @Repository
 public interface LemmaRepository extends JpaRepository<Lemma, Integer> {
-    @Query(value = "SELECT SUM(`frequency`) FROM lemmas where site_id = ?",
+    @Query(value = "SELECT SUM(frequency) FROM lemmas where site_id = ?",
     nativeQuery = true)
     Integer countLemmaInSite (int siteId);
 

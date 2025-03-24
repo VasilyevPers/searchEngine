@@ -3,9 +3,9 @@ server:
 
 spring:
   datasource:
-    username: root
-    password: VasileV532
-    url: jdbc:mysql://localhost:3306/search_engine?useSSL=false&requireSSL=false&allowPublicKeyRetrieval=true
+    username: postgres
+    password: 1234
+    url: jdbc:postgresql://localhost:5432/search_engine?useSSL=false&requireSSL=false&allowPublicKeyRetrieval=true
   jpa:
     properties:
       hibernate:
@@ -14,7 +14,6 @@ spring:
           order_insert: true
           order_delete: true
           order_update: true
-        dialect: org.hibernate.dialect.MySQL8Dialect
     hibernate:
       ddl-auto: update
     show-sql: true
@@ -23,7 +22,7 @@ spring:
 indexing-settings:
   sites:
     - url: http://www.framenoir.com/
-      name: http://www.framenoir.com/.Ru
+      name: Frame Noir
     - url: https://dombulgakova.ru/
       name: Дом Булгакова
     - url: https://playback.ru/

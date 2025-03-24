@@ -3,7 +3,6 @@ package searchengine.utils.lemmatization;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import searchengine.utils.lemmatization.Lemmatization;
 
 import java.io.IOException;
 import java.util.ArrayList;
