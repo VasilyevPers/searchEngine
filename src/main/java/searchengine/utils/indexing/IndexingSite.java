@@ -42,6 +42,9 @@ public class IndexingSite extends RecursiveAction {
 
     @Override
     protected void compute() throws RuntimeException {
+        String methodName = StackWalker.getInstance().walk(frames -> frames
+                .findFirst()
+                .map(StackWalker.StackFrame::getMethodName)).get();
         Map<String, Page> elementsOnThePage = new HashMap<>();
         List<String> continuingIndexing = new ArrayList<>();
         List<String> allPathList = new ArrayList<>();
@@ -57,17 +60,13 @@ public class IndexingSite extends RecursiveAction {
             elements = urlCode.select("a");
         } catch (IOException e) {
             throw new RuntimeException(this.getClass().getName() + " " +
-                                       StackWalker.getInstance().walk(frames -> frames
-                                           .findFirst()
-                                           .map(StackWalker.StackFrame::getMethodName)).get() +
+                                       methodName +
                                        "Ошибка индексации страницы: " +
                                        linkForIndexing +
                                        " Не удалось получить доступ к странице для получения HTML данных!");
         } catch (InterruptedException e) {
             throw new RuntimeException( this.getClass().getName() + " " +
-                                        StackWalker.getInstance().walk(frames -> frames
-                                            .findFirst()
-                                            .map(StackWalker.StackFrame::getMethodName)).get() +
+                                        methodName +
                                         " Ошибка индексации страницы: " +
                                         linkForIndexing +
                                         " Поток был прерван другим потоком!");

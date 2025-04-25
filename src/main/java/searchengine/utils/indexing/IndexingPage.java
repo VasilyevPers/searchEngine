@@ -84,22 +84,21 @@ public class IndexingPage {
     }
 
     private Page createPage(Site site, String path) throws ConnectionUtils.PageConnectException, ConnectionUtils.ContentRequestException {
+        String methodName = StackWalker.getInstance().walk(frames -> frames
+                .findFirst()
+                .map(StackWalker.StackFrame::getMethodName)).get();
         Page pageForReindexing = new Page();
         try {
             pageForReindexing.setCode(connectionUtils.requestResponseCode(path));
             pageForReindexing.setContent(connectionUtils.createPageContent(path));
         } catch (ConnectionUtils.PageConnectException ex) {
             throw new ConnectionUtils.PageConnectException(this.getClass().getName() + " " +
-                                                           StackWalker.getInstance().walk(frames -> frames
-                                                               .findFirst()
-                                                               .map(StackWalker.StackFrame::getMethodName)).get() +
+                                                           methodName +
                                                            " Ошибка подключения " +
                                                            ex.getMessage());
         } catch (ConnectionUtils.ContentRequestException ex) {
             throw new ConnectionUtils.ContentRequestException(this.getClass().getName() + " " +
-                                                              StackWalker.getInstance().walk(frames -> frames
-                                                                 .findFirst()
-                                                                  .map(StackWalker.StackFrame::getMethodName)).get() +
+                                                              methodName +
                                                               " Ошибка при обработке данных " +
                                                               ex.getMessage());
         }
