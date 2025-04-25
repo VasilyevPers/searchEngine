@@ -36,17 +36,13 @@ public class ConnectionUtils {
         try {
             response = Jsoup.connect(absPageUrl).execute();
         } catch (IOException e) {
-            throw new PageConnectException(this.getClass().getName() + " " +
-                    this.getClass().getEnclosingMethod().getName() + " " +
-                    Exception.class.getName() +
-                    "Не удалось получить доступ к странице!");
+            throw new PageConnectException(Exception.class.getName() +
+                                           " Не удалось получить доступ к странице!");
         }
         int statusCode = response.statusCode();
         if (statusCode != 200) {
-            throw new PageConnectException(this.getClass().getName() + " " +
-                    this.getClass().getEnclosingMethod().getName() + " " +
-                    Exception.class.getName() +
-                    "Страница не доступна, код ответа: " + statusCode);
+            throw new PageConnectException(Exception.class.getName() +
+                                           " Страница не доступна, код ответа: " + statusCode);
         }
         return statusCode;
     }
@@ -55,10 +51,8 @@ public class ConnectionUtils {
         try {
             content = Jsoup.connect(absPageUrl).get().html();
         } catch (IOException ex) {
-            throw new ContentRequestException(this.getClass().getName() +
-                                        this.getClass().getEnclosingMethod().getName() +
-                                        Exception.class.getName() +
-                                        "Ошибка при получении HTML данных!");
+            throw new ContentRequestException(Exception.class.getName() +
+                                              " Ошибка при получении HTML данных!");
         }
         return content;
     }
