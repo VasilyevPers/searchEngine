@@ -50,14 +50,18 @@ public class SiteIndexingImpl implements SiteIndexing {
     @Override
     public ResponseMainRequest fullIndexingSite() {
         log.info("{}: {}. Подготовка к полной индексации. Представлено {} сайта(ов).",this.getClass().getName(),
-                                                                                      this.getClass().getEnclosingMethod().getName(),
+                                                                                      StackWalker.getInstance().walk(frames -> frames
+                                                                                              .findFirst()
+                                                                                              .map(StackWalker.StackFrame::getMethodName)).get(),
                                                                                       allSitesForIndexing.getSites().size());
         stopIndexing.set(false);
         responseRequest = new ResponseMainRequest();
         if (!isCheckIndexingStatus()) {
             responseRequest.setError("Индексация уже запущена");
             log.warn("{}: {}. Ошибка полной индексации, {}", this.getClass().getName(),
-                                                             this.getClass().getEnclosingMethod().getName(),
+                                                             StackWalker.getInstance().walk(frames -> frames
+                                                                .findFirst()
+                                                                .map(StackWalker.StackFrame::getMethodName)).get(),
                                                              responseRequest.getError());
             return responseRequest;
         }
@@ -76,9 +80,11 @@ public class SiteIndexingImpl implements SiteIndexing {
             } catch (ConnectionUtils.PageConnectException | SecurityException ex) {
                 updatesSiteWithErrors(startSite, ex.getMessage());
                 log.error("{}: {}. {} {} для индексации.",this.getClass().getName(),
-                        this.getClass().getEnclosingMethod().getName(),
-                        startSite.getLastError(),
-                        siteForIndexing.getUrl());
+                                                          StackWalker.getInstance().walk(frames -> frames
+                                                            .findFirst()
+                                                            .map(StackWalker.StackFrame::getMethodName)).get(),
+                                                          startSite.getLastError(),
+                                                          siteForIndexing.getUrl());
                 continue;
             }
             siteRepository.save(startSite);
@@ -86,13 +92,17 @@ public class SiteIndexingImpl implements SiteIndexing {
         if (taskList.isEmpty()) {
             responseRequest.setError("Не удалось Запустить полную индексацию, Указанные сайты недоступны!");
             log.warn("{}: {}. {}",this.getClass().getName(),
-                    this.getClass().getEnclosingMethod().getName(),
-                    responseRequest.getError());
+                                  StackWalker.getInstance().walk(frames -> frames
+                                    .findFirst()
+                                    .map(StackWalker.StackFrame::getMethodName)).get(),
+                                  responseRequest.getError());
             return responseRequest;
         }
         responseRequest.setResult(true);
         log.info("{}: {}. Полная индексация {} сайта(ов) запущена!",this.getClass().getName(),
-                                                                    this.getClass().getEnclosingMethod().getName(),
+                                                                    StackWalker.getInstance().walk(frames -> frames
+                                                                        .findFirst()
+                                                                        .map(StackWalker.StackFrame::getMethodName)).get(),
                                                                     taskList.size());
         return responseRequest;
     }
@@ -111,33 +121,39 @@ public class SiteIndexingImpl implements SiteIndexing {
                     String error = "Индексация остановлена пользователем";
                     updatesSiteWithErrors(startSite, error);
                     log.info("{}: {}. {}, {}",this.getClass().getName(),
-                                              this.getClass().getEnclosingMethod().getName(),
+                                              StackWalker.getInstance().walk(frames -> frames
+                                                .findFirst()
+                                                .map(StackWalker.StackFrame::getMethodName)).get(),
                                               startSite.getUrl(),
                                               error);
                 } else {
                     updatesSiteWithOk(startSite);
                     log.info("{}: {}. {} Индексация успешно завершена.", this.getClass().getName(),
-                                                                         this.getClass().getEnclosingMethod().getName(),
+                                                                         StackWalker.getInstance().walk(frames -> frames
+                                                                            .findFirst()
+                                                                            .map(StackWalker.StackFrame::getMethodName)).get(),
                                                                          startSite.getUrl());
                 }
             } catch (SecurityException ex) {
                 updatesSiteWithErrors(startSite, ex.getMessage());
                 throw new SecurityException(this.getClass().getName() + " " +
-                                            this.getClass().getEnclosingMethod().getName() + " " +
+                                            StackWalker.getInstance().walk(frames -> frames
+                                                .findFirst()
+                                                .map(StackWalker.StackFrame::getMethodName)).get() + " " +
                                             Exception.class.getName() +
                                             "Ошибка индексации сайта: " + startSite.getUrl() +
                                             "Ошибка при создании потока: " +
                                             ex.getMessage());
+            } catch (RuntimeException ex) {
+                pageLog.warn("{} {} {}", this.getClass().getName(),
+                                         StackWalker.getInstance().walk(frames -> frames
+                                             .findFirst()
+                                             .map(StackWalker.StackFrame::getMethodName)).get(),
+                                         ex.getMessage());
             }
         };
-        try {
-            Future<?> runTask = service.submit(runnableTask);
-            taskList.add(runTask);
-        } catch (RuntimeException ex) {
-            pageLog.warn("{} {} {}", this.getClass().getName(),
-                                     this.getClass().getEnclosingMethod().getName(),
-                                     ex.getMessage());
-        }
+        Future<?> runTask = service.submit(runnableTask);
+        taskList.add(runTask);
     }
 
     private void updatesSiteWithOk (Site startSite) {
@@ -156,12 +172,16 @@ public class SiteIndexingImpl implements SiteIndexing {
     @Override
     public ResponseMainRequest stopIndexing() {
         log.info("{}: {}. Запрос на остановку индексации от пользователя.", this.getClass().getName(),
-                                                                            this.getClass().getEnclosingMethod().getName());
+                                                                            StackWalker.getInstance().walk(frames -> frames
+                                                                                .findFirst()
+                                                                                .map(StackWalker.StackFrame::getMethodName)).get());
         responseRequest = new ResponseMainRequest();
         if (taskList.isEmpty() || isCheckIndexingStatus()) {
             responseRequest.setError("Индексация не запущена");
             log.warn("{}: {}. Ошибка остановки индексации! {}", this.getClass().getName(),
-                                                                this.getClass().getEnclosingMethod().getName(),
+                                                                StackWalker.getInstance().walk(frames -> frames
+                                                                    .findFirst()
+                                                                    .map(StackWalker.StackFrame::getMethodName)).get(),
                                                                 responseRequest.getError());
             return responseRequest;
         }
@@ -172,12 +192,16 @@ public class SiteIndexingImpl implements SiteIndexing {
                 sleep(500);
             } catch (InterruptedException e) {
                 log.warn("{}: {}. Попытка прерывания потока остановки индексации!", this.getClass().getName(),
-                                                                                    this.getClass().getEnclosingMethod().getName());
+                                                                                    StackWalker.getInstance().walk(frames -> frames
+                                                                                        .findFirst()
+                                                                                        .map(StackWalker.StackFrame::getMethodName)).get());
                 Thread.currentThread().interrupt();
             }
         }
         log.info("{}: {}. Индексация успешно остановлена пользователем", this.getClass().getName(),
-                                                                         this.getClass().getEnclosingMethod().getName());
+                                                                         StackWalker.getInstance().walk(frames -> frames
+                                                                         .findFirst()
+                                                                         .map(StackWalker.StackFrame::getMethodName)).get());
         return responseRequest;
     }
 
@@ -193,7 +217,9 @@ public class SiteIndexingImpl implements SiteIndexing {
     public ResponseMainRequest indexPage (String path)  {
         path = path.substring(path.indexOf("h"));
         pageLog.info("{}: {}. Получен запрос для индексации отдельной страницы: {}", this.getClass().getName(),
-                                                                                     this.getClass().getEnclosingMethod().getName(),
+                                                                                     StackWalker.getInstance().walk(frames -> frames
+                                                                                        .findFirst()
+                                                                                        .map(StackWalker.StackFrame::getMethodName)).get(),
                                                                                      path);
         responseRequest = new ResponseMainRequest();
         for (SiteConfig site : allSitesForIndexing.getSites()) {
@@ -209,7 +235,9 @@ public class SiteIndexingImpl implements SiteIndexing {
             } catch (IOException ex) {
                 responseRequest.setError(ex.getMessage());
                 pageLog.error("{}: {}. Ошибка индексации отдельной страницы: {}. {}: {}", this.getClass().getName(),
-                                                                                          this.getClass().getEnclosingMethod().getName(),
+                                                                                          StackWalker.getInstance().walk(frames -> frames
+                                                                                             .findFirst()
+                                                                                             .map(StackWalker.StackFrame::getMethodName)).get(),
                                                                                           path,
                                                                                           Exception.class.getName(),
                                                                                           ex.getMessage());
@@ -220,7 +248,9 @@ public class SiteIndexingImpl implements SiteIndexing {
         }
         responseRequest.setError("Страница находится за пределами сайтов!");
         pageLog.info("{}: {}. {}", this.getClass().getName(),
-                                   this.getClass().getEnclosingMethod().getName(),
+                                   StackWalker.getInstance().walk(frames -> frames
+                                      .findFirst()
+                                      .map(StackWalker.StackFrame::getMethodName)).get(),
                                    responseRequest.getError());
         return responseRequest;
     }

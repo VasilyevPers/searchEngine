@@ -57,15 +57,20 @@ public class IndexingSite extends RecursiveAction {
             elements = urlCode.select("a");
         } catch (IOException e) {
             throw new RuntimeException(this.getClass().getName() + " " +
-                                       this.getClass().getEnclosingMethod().getName() +
+                                       StackWalker.getInstance().walk(frames -> frames
+                                           .findFirst()
+                                           .map(StackWalker.StackFrame::getMethodName)).get() +
                                        "Ошибка индексации страницы: " +
                                        linkForIndexing +
                                        " Не удалось получить доступ к странице для получения HTML данных!");
         } catch (InterruptedException e) {
-            throw new RuntimeException(this.getClass().getName() + " " +
-                                       this.getClass().getEnclosingMethod().getName() +"Ошибка индексации страницы: " +
-                                       linkForIndexing +
-                                       " Поток был прерван другим потоком!");
+            throw new RuntimeException( this.getClass().getName() + " " +
+                                        StackWalker.getInstance().walk(frames -> frames
+                                            .findFirst()
+                                            .map(StackWalker.StackFrame::getMethodName)).get() +
+                                        " Ошибка индексации страницы: " +
+                                        linkForIndexing +
+                                        " Поток был прерван другим потоком!");
         }
         if (SiteIndexingImpl.getStopIndexing().get()) {
             elements.clear();
@@ -98,10 +103,12 @@ public class IndexingSite extends RecursiveAction {
             pageForSave.setContent(connectionUtils.createPageContent(absUrl));
         } catch (ConnectionUtils.PageConnectException |
                  ConnectionUtils.ContentRequestException ex) {
-            pageLog.warn("{}: {}. Ошибка индексации страницы: {}. {}",this.getClass().getName(),
-                                                                    this.getClass().getEnclosingMethod().getName(),
-                                                                    absUrl,
-                                                                    ex.getMessage());
+            pageLog.warn("{}: {}. Ошибка индексации страницы: {}. {}", this.getClass().getName(),
+                                                                       StackWalker.getInstance().walk(frames -> frames
+                                                                           .findFirst()
+                                                                           .map(StackWalker.StackFrame::getMethodName)).get(),
+                                                                       absUrl,
+                                                                       ex.getMessage());
             return null;
         }
         pageForSave.setPath(pagePath);
@@ -119,7 +126,9 @@ public class IndexingSite extends RecursiveAction {
                 new CreateLemmaAndIndex().createLemmaAndIndex(entry.getValue());
             } catch (Lemmatization.LemmatizationConnectException ex) {
                 pageLog.warn("{} {} Ошибка индексации страницы: {}{}. {}", this.getClass().getName(),
-                                                                           this.getClass().getEnclosingMethod().getName(),
+                                                                           StackWalker.getInstance().walk(frames -> frames
+                                                                               .findFirst()
+                                                                               .map(StackWalker.StackFrame::getMethodName)).get(),
                                                                            entry.getValue().getSite(),
                                                                            entry.getValue().getPath(),
                                                                            ex.getMessage());

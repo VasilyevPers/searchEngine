@@ -90,13 +90,17 @@ public class IndexingPage {
             pageForReindexing.setContent(connectionUtils.createPageContent(path));
         } catch (ConnectionUtils.PageConnectException ex) {
             throw new ConnectionUtils.PageConnectException(this.getClass().getName() + " " +
-                                                           this.getClass().getEnclosingMethod().getName() + " " +
-                                                           "Ошибка подключения " +
+                                                           StackWalker.getInstance().walk(frames -> frames
+                                                               .findFirst()
+                                                               .map(StackWalker.StackFrame::getMethodName)).get() +
+                                                           " Ошибка подключения " +
                                                            ex.getMessage());
         } catch (ConnectionUtils.ContentRequestException ex) {
             throw new ConnectionUtils.ContentRequestException(this.getClass().getName() + " " +
-                                                              this.getClass().getEnclosingMethod().getName() + " " +
-                                                              "Ошибка при обработке данных " +
+                                                              StackWalker.getInstance().walk(frames -> frames
+                                                                 .findFirst()
+                                                                  .map(StackWalker.StackFrame::getMethodName)).get() +
+                                                              " Ошибка при обработке данных " +
                                                               ex.getMessage());
         }
         pageForReindexing.setSite(site);

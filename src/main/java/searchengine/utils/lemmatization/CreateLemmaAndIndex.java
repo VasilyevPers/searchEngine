@@ -15,7 +15,9 @@ public class CreateLemmaAndIndex {
             lemmasOnThePage = new Lemmatization().collectLemmasForIndexing(page.getContent());
         } catch (IOException e) {
             throw new Lemmatization.LemmatizationConnectException(this.getClass().getName() + " " +
-                                                                  this.getClass().getEnclosingMethod().getName() + " " +
+                                                                  StackWalker.getInstance().walk(frames -> frames
+                                                                     .findFirst()
+                                                                     .map(StackWalker.StackFrame::getMethodName)).get() + " " +
                                                                   Exception.class.getName() +
                                                                   " Ошибка подключения к библиотеке лемматизации");
         }
