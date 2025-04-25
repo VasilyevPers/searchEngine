@@ -12,14 +12,15 @@ import searchengine.repositories.LemmaRepository;
 import searchengine.repositories.PageRepository;
 import searchengine.repositories.SiteRepository;
 import searchengine.services.SiteIndexingImpl;
-import searchengine.utils.CustomExceptions;
 import searchengine.utils.lemmatization.CreateLemmaAndIndex;
+import searchengine.utils.lemmatization.Lemmatization;
 import searchengine.utils.lemmatization.UpdateLemma;
 import java.io.IOException;
 import java.time.LocalDateTime;
 import java.util.*;
 import java.util.concurrent.ForkJoinTask;
 import java.util.concurrent.RecursiveAction;
+import static searchengine.utils.indexing.IndexingPage.pageLog;
 
 public class IndexingSite extends RecursiveAction {
     private ConnectionUtils connectionUtils = new ConnectionUtils();
@@ -40,7 +41,7 @@ public class IndexingSite extends RecursiveAction {
     }
 
     @Override
-    protected void compute() throws RuntimeException{
+    protected void compute() throws RuntimeException {
         Map<String, Page> elementsOnThePage = new HashMap<>();
         List<String> continuingIndexing = new ArrayList<>();
         List<String> allPathList = new ArrayList<>();
@@ -52,16 +53,23 @@ public class IndexingSite extends RecursiveAction {
         Elements elements;
         try {
             Document urlCode = Jsoup.connect(linkForIndexing).get();
-            Thread.sleep(150);
+            Thread.sleep(100);
             elements = urlCode.select("a");
-        } catch (IOException | InterruptedException e) {
-            elements = new Elements();
-            }
-
+        } catch (IOException e) {
+            throw new RuntimeException(this.getClass().getName() + " " +
+                                       this.getClass().getEnclosingMethod().getName() +
+                                       "Ошибка индексации страницы: " +
+                                       linkForIndexing +
+                                       " Не удалось получить доступ к странице для получения HTML данных!");
+        } catch (InterruptedException e) {
+            throw new RuntimeException(this.getClass().getName() + " " +
+                                       this.getClass().getEnclosingMethod().getName() +"Ошибка индексации страницы: " +
+                                       linkForIndexing +
+                                       " Поток был прерван другим потоком!");
+        }
         if (SiteIndexingImpl.getStopIndexing().get()) {
             elements.clear();
-        };
-
+        }
         for (Element element : elements) {
             if (SiteIndexingImpl.getStopIndexing().get())
                 break;
@@ -85,15 +93,15 @@ public class IndexingSite extends RecursiveAction {
              connectionUtils.isRemovesUnnecessaryLinks(pagePath))
             return null;
         Page pageForSave = new Page();
-        pageForSave.setCode(connectionUtils.requestResponseCode(absUrl));
-        if (pageForSave.getCode() != 200)
-            return null;
         try {
-            pageForSave.setContent(Jsoup.connect(absUrl).get().html());
-        } catch (IOException e) {
-
-            /* Реализация логирования */
-
+            pageForSave.setCode(connectionUtils.requestResponseCode(absUrl));
+            pageForSave.setContent(connectionUtils.createPageContent(absUrl));
+        } catch (ConnectionUtils.PageConnectException |
+                 ConnectionUtils.ContentRequestException ex) {
+            pageLog.warn("{}: {}. Ошибка индексации страницы: {}. {}",this.getClass().getName(),
+                                                                    this.getClass().getEnclosingMethod().getName(),
+                                                                    absUrl,
+                                                                    ex.getMessage());
             return null;
         }
         pageForSave.setPath(pagePath);
@@ -109,10 +117,12 @@ public class IndexingSite extends RecursiveAction {
         for (Map.Entry<String, Page> entry : elementsOnThePage.entrySet()) {
             try {
                 new CreateLemmaAndIndex().createLemmaAndIndex(entry.getValue());
-            } catch (CustomExceptions.LemmatizationConnectException e) {
-
-                /* Реализация логирования */
-
+            } catch (Lemmatization.LemmatizationConnectException ex) {
+                pageLog.warn("{} {} Ошибка индексации страницы: {}{}. {}", this.getClass().getName(),
+                                                                           this.getClass().getEnclosingMethod().getName(),
+                                                                           entry.getValue().getSite(),
+                                                                           entry.getValue().getPath(),
+                                                                           ex.getMessage());
             }
         }
         synchronized (site.getUrl()) {
@@ -147,6 +157,7 @@ public class IndexingSite extends RecursiveAction {
         }
         taskBranch.forEach(ForkJoinTask::join);
     }
+
     public static class IndexingSiteBuilding {
         private SiteRepository siteRepository;
         private PageRepository pageRepository;

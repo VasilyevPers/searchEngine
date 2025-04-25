@@ -2,27 +2,23 @@ package searchengine.utils.lemmatization;
 import searchengine.model.Index;
 import searchengine.model.Lemma;
 import searchengine.model.Page;
-import searchengine.utils.CustomExceptions;
 
 import java.io.IOException;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 public class CreateLemmaAndIndex {
 
-    public void createLemmaAndIndex (Page page) throws CustomExceptions.LemmatizationConnectException {
-        Map<String, Integer> lemmasOnThePage = new HashMap<>();
+    public void createLemmaAndIndex (Page page) throws Lemmatization.LemmatizationConnectException {
+        Map<String, Integer> lemmasOnThePage;
         try {
             lemmasOnThePage = new Lemmatization().collectLemmasForIndexing(page.getContent());
         } catch (IOException e) {
-            throw new CustomExceptions.LemmatizationConnectException("Ошибка подключения к библиотеке лемматизации");
+            throw new Lemmatization.LemmatizationConnectException(this.getClass().getName() + " " +
+                                                                  this.getClass().getEnclosingMethod().getName() + " " +
+                                                                  Exception.class.getName() +
+                                                                  " Ошибка подключения к библиотеке лемматизации");
         }
-
-        /* В случае, если список индексов пустой, это значит что при подключении
-         * к лемматизатору возникла ошибка и данную ситуацию нужно передать в логи
-         * для дальнейшей обработки. */
-
 
         for (Map.Entry<String, Integer> entry : lemmasOnThePage.entrySet()) {
 

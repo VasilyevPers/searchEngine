@@ -1,20 +1,18 @@
 package searchengine.utils.indexing;
 
-import org.jsoup.Jsoup;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import searchengine.config.SiteConfig;
-import searchengine.dto.responseRequest.RequestStatus;
+import searchengine.dto.responseRequest.ResponseMainRequest;
 import searchengine.model.*;
 import searchengine.repositories.IndexRepository;
 import searchengine.repositories.LemmaRepository;
 import searchengine.repositories.PageRepository;
 import searchengine.repositories.SiteRepository;
-import searchengine.utils.CustomExceptions;
 import searchengine.utils.lemmatization.CreateLemmaAndIndex;
+import searchengine.utils.lemmatization.Lemmatization;
 import searchengine.utils.lemmatization.UpdateLemma;
 
-import java.io.IOException;
 import java.time.LocalDateTime;
 import java.util.*;
 
@@ -25,7 +23,6 @@ public class IndexingPage {
     private PageRepository pageRepository;
     private IndexRepository indexRepository;
     private LemmaRepository lemmaRepository;
-    private RequestStatus requestStatus = new RequestStatus();
     public static final Logger pageLog = LoggerFactory.getLogger(IndexingPage.class);
 
     private IndexingPage(SiteRepository siteRepository, PageRepository pageRepository,
@@ -36,7 +33,9 @@ public class IndexingPage {
         this.lemmaRepository = lemmaRepository;
     }
 
-    public final RequestStatus indexPage (SiteConfig siteConfig, String path) {
+    public final ResponseMainRequest indexPage (SiteConfig siteConfig, String path) throws ConnectionUtils.PageConnectException,
+                                                                                           Lemmatization.LemmatizationConnectException,
+                                                                                           ConnectionUtils.ContentRequestException {
         List<Index> indexForSaving = new ArrayList<>();
         Map<String, Lemma> lemmaList = new HashMap<>();
         path = connectionUtils.correctsTheLink(path);
@@ -54,20 +53,8 @@ public class IndexingPage {
         if (page != null) {
             deletesOrUpdatesPageData(page.getId());
         }
-        try {
-            page = createPage(site, path);
-            createLemmaAndIndex.createLemmaAndIndex(page);
-        } catch (CustomExceptions.PageConnectException e) {
-            requestStatus.setError(e.getMessage() + " Проверьте правильность написания адреса страницы или попробуйте позже.");
-            return requestStatus;
-        } catch (CustomExceptions.LemmatizationConnectException e) {
-            requestStatus.setError(e.getMessage() + " Невозможно установить соединение с сервером. Попробуйте позже.");
-            pageLog.warn("Ошибка индексации страницы: {} {}", path, e.getMessage());
-            return requestStatus;
-        } catch (CustomExceptions.ContentRequestException e) {
-            requestStatus.setError(e.getMessage() + "Не удалось получить данные с запрашиваемой страницы. Попробуйте позже.");
-            return requestStatus;
-        }
+        page = createPage(site, path);
+        createLemmaAndIndex.createLemmaAndIndex(page);
         createLemmaAndIndex.createListLemmaAndIndex(page, indexForSaving, lemmaList);
 
         Map<String, Lemma> lemmaForSaving = new UpdateLemma().updateLemma(lemmaRepository, indexForSaving, lemmaList);
@@ -77,8 +64,9 @@ public class IndexingPage {
         lemmaRepository.saveAll(lemmaForSaving.values());
         indexRepository.saveAll(indexForSaving);
 
-        requestStatus.setStatus(true);
-        return requestStatus;
+        ResponseMainRequest responseRequest = new ResponseMainRequest();
+        responseRequest.setResult(true);
+        return responseRequest;
     }
 
     private Page searchPageInBD(String path) {
@@ -95,25 +83,23 @@ public class IndexingPage {
         return page;
     }
 
-    private Page createPage(Site site, String path) throws CustomExceptions.PageConnectException, CustomExceptions.ContentRequestException {
-        int pageResponseCode = connectionUtils.requestResponseCode(path);
-        String errorMessageForLog = "Ошибка индексации страницы: ";
-        if (pageResponseCode != 200) {
-            String errorMessageForException = "Страница не доступна!";
-            pageLog.warn("{} {} {} Код ответа: {}", errorMessageForLog, path,errorMessageForException, pageResponseCode);
-            throw new CustomExceptions.PageConnectException(errorMessageForException);
-        }
+    private Page createPage(Site site, String path) throws ConnectionUtils.PageConnectException, ConnectionUtils.ContentRequestException {
         Page pageForReindexing = new Page();
-        pageForReindexing.setSite(site);
-        pageForReindexing.setCode(pageResponseCode);
         try {
-            pageForReindexing.setContent(Jsoup.connect(path).get().html());
-        } catch (IOException e) {
-            String errorMessageForException = "Ошибка при получении контента!";
-            pageLog.warn("{} {} {}", errorMessageForLog, path, errorMessageForException);
-            throw new CustomExceptions.ContentRequestException(errorMessageForException);
+            pageForReindexing.setCode(connectionUtils.requestResponseCode(path));
+            pageForReindexing.setContent(connectionUtils.createPageContent(path));
+        } catch (ConnectionUtils.PageConnectException ex) {
+            throw new ConnectionUtils.PageConnectException(this.getClass().getName() + " " +
+                                                           this.getClass().getEnclosingMethod().getName() + " " +
+                                                           "Ошибка подключения " +
+                                                           ex.getMessage());
+        } catch (ConnectionUtils.ContentRequestException ex) {
+            throw new ConnectionUtils.ContentRequestException(this.getClass().getName() + " " +
+                                                              this.getClass().getEnclosingMethod().getName() + " " +
+                                                              "Ошибка при обработке данных " +
+                                                              ex.getMessage());
         }
-
+        pageForReindexing.setSite(site);
         pageForReindexing.setPath(path);
 
         return pageForReindexing;

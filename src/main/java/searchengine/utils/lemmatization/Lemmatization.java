@@ -103,4 +103,10 @@ public class Lemmatization {
     private String parseHTML (String html) {
         return Jsoup.clean(html, Safelist.none());
     }
+
+    public static class LemmatizationConnectException extends IOException {
+        public LemmatizationConnectException(String message) {
+            super(message);
+        }
+    }
 }

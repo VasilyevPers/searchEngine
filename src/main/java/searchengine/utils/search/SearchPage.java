@@ -3,7 +3,6 @@ package searchengine.utils.search;
 import org.jsoup.Jsoup;
 import searchengine.dto.searchRequest.FoundPage;
 import searchengine.dto.searchRequest.SearchRequest;
-import searchengine.model.Index;
 import searchengine.model.Lemma;
 import searchengine.model.Page;
 import searchengine.model.Site;
@@ -89,7 +88,8 @@ public class SearchPage {
                 lemmaList.forEach(lemma -> {
                     if (lemmaForSearch.containsKey(lemma.getLemma())) {
                         lemmaForSearch.put(lemma.getLemma(), lemmaForSearch.get(lemma.getLemma()) + lemma.getFrequency());
-                    } else lemmaForSearch.put(lemma.getLemma(), lemma.getFrequency());
+                    }
+                    else lemmaForSearch.put(lemma.getLemma(), lemma.getFrequency());
                 });
             } catch (NullPointerException e) {
                 return null;

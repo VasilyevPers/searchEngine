@@ -5,7 +5,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import searchengine.config.SiteConfig;
-import searchengine.dto.responseRequest.RequestStatus;
 import searchengine.dto.responseRequest.ResponseMainRequest;
 import searchengine.dto.searchRequest.SearchRequest;
 import searchengine.model.*;
@@ -19,6 +18,7 @@ import searchengine.utils.indexing.IndexingPage;
 import searchengine.utils.indexing.IndexingSite;
 import searchengine.utils.search.SearchPage;
 
+import java.io.IOException;
 import java.time.LocalDateTime;
 import java.util.*;
 import java.util.concurrent.*;
@@ -49,44 +49,55 @@ public class SiteIndexingImpl implements SiteIndexing {
 
     @Override
     public ResponseMainRequest fullIndexingSite() {
-        log.info("Подготовка к полной индексации. Представлено {} сайта(ов).",allSitesForIndexing.getSites().size());
+        log.info("{}: {}. Подготовка к полной индексации. Представлено {} сайта(ов).",this.getClass().getName(),
+                                                                                      this.getClass().getEnclosingMethod().getName(),
+                                                                                      allSitesForIndexing.getSites().size());
         stopIndexing.set(false);
         responseRequest = new ResponseMainRequest();
         if (!isCheckIndexingStatus()) {
             responseRequest.setError("Индексация уже запущена");
-            log.warn("Ошибка полной индексации, {}", responseRequest.getError());
+            log.warn("{}: {}. Ошибка полной индексации, {}", this.getClass().getName(),
+                                                             this.getClass().getEnclosingMethod().getName(),
+                                                             responseRequest.getError());
             return responseRequest;
         }
         siteRepository.deleteAll();
-        log.info("База данный успешно удалена.");
         service = Executors.newCachedThreadPool();
         for (SiteConfig siteForIndexing : allSitesForIndexing.getSites()) {
             Site startSite = new Site();
             startSite.setStatusTime(LocalDateTime.now());
             startSite.setName(siteForIndexing.getName());
             startSite.setUrl(connectionUtils.correctsTheLink(siteForIndexing.getUrl()));
-            int statusCode = connectionUtils.requestResponseCode(startSite.getUrl());
-            if (statusCode != 200) {
-                startSite.setStatus(Site.StatusIndexing.FAILED);
-                startSite.setLastError("Не удалось получить доступ к сайту.");
-                log.warn("{} {} для индексации. Код ответа: {}",startSite.getLastError(), siteForIndexing.getUrl(), statusCode);
-            } else {
+
+            try {
+                connectionUtils.requestResponseCode(startSite.getUrl());
                 startSite.setStatus(Site.StatusIndexing.INDEXING);
                 createAndRunTask(startSite, startSite.getUrl());
+            } catch (ConnectionUtils.PageConnectException | SecurityException ex) {
+                updatesSiteWithErrors(startSite, ex.getMessage());
+                log.error("{}: {}. {} {} для индексации.",this.getClass().getName(),
+                        this.getClass().getEnclosingMethod().getName(),
+                        startSite.getLastError(),
+                        siteForIndexing.getUrl());
+                continue;
             }
             siteRepository.save(startSite);
         }
         if (taskList.isEmpty()) {
             responseRequest.setError("Не удалось Запустить полную индексацию, Указанные сайты недоступны!");
-            log.warn("{}", responseRequest.getError());
+            log.warn("{}: {}. {}",this.getClass().getName(),
+                    this.getClass().getEnclosingMethod().getName(),
+                    responseRequest.getError());
             return responseRequest;
         }
         responseRequest.setResult(true);
-        log.info("Полная индексация {} сайта(ов) запущена!", taskList.size());
+        log.info("{}: {}. Полная индексация {} сайта(ов) запущена!",this.getClass().getName(),
+                                                                    this.getClass().getEnclosingMethod().getName(),
+                                                                    taskList.size());
         return responseRequest;
     }
 
-    private void createAndRunTask(Site startSite, String linkForIndexing) {
+    private void createAndRunTask(Site startSite, String linkForIndexing) throws SecurityException {
         Runnable runnableTask = () ->{
             try {
                 new ForkJoinPool().invoke(new IndexingSite.IndexingSiteBuilding(startSite, linkForIndexing)
@@ -96,22 +107,37 @@ public class SiteIndexingImpl implements SiteIndexing {
                         .lemmaRepository(lemmaRepository)
                         .indexingSite());
 
-                log.info("Запущена индексация сайта: {}", startSite.getUrl());
                 if (stopIndexing.get()) {
                     String error = "Индексация остановлена пользователем";
                     updatesSiteWithErrors(startSite, error);
-                    log.info("{}, {}",startSite.getUrl(), error);
+                    log.info("{}: {}. {}, {}",this.getClass().getName(),
+                                              this.getClass().getEnclosingMethod().getName(),
+                                              startSite.getUrl(),
+                                              error);
                 } else {
                     updatesSiteWithOk(startSite);
-                    log.info("{} Индексация успешно завершена.", startSite.getUrl());
+                    log.info("{}: {}. {} Индексация успешно завершена.", this.getClass().getName(),
+                                                                         this.getClass().getEnclosingMethod().getName(),
+                                                                         startSite.getUrl());
                 }
-            } catch (SecurityException error) {
-                updatesSiteWithErrors(startSite, error.getMessage());
-                log.error("Ошибка индексации сайта: {} Ошибка создания ForkJoinPool {}", startSite.getUrl(), error.getMessage());
+            } catch (SecurityException ex) {
+                updatesSiteWithErrors(startSite, ex.getMessage());
+                throw new SecurityException(this.getClass().getName() + " " +
+                                            this.getClass().getEnclosingMethod().getName() + " " +
+                                            Exception.class.getName() +
+                                            "Ошибка индексации сайта: " + startSite.getUrl() +
+                                            "Ошибка при создании потока: " +
+                                            ex.getMessage());
             }
         };
-        Future<?> runTask = service.submit(runnableTask);
-        taskList.add(runTask);
+        try {
+            Future<?> runTask = service.submit(runnableTask);
+            taskList.add(runTask);
+        } catch (RuntimeException ex) {
+            pageLog.warn("{} {} {}", this.getClass().getName(),
+                                     this.getClass().getEnclosingMethod().getName(),
+                                     ex.getMessage());
+        }
     }
 
     private void updatesSiteWithOk (Site startSite) {
@@ -129,11 +155,14 @@ public class SiteIndexingImpl implements SiteIndexing {
 
     @Override
     public ResponseMainRequest stopIndexing() {
-        log.info("Запрос на остановку индексации от пользователя");
+        log.info("{}: {}. Запрос на остановку индексации от пользователя.", this.getClass().getName(),
+                                                                            this.getClass().getEnclosingMethod().getName());
         responseRequest = new ResponseMainRequest();
         if (taskList.isEmpty() || isCheckIndexingStatus()) {
             responseRequest.setError("Индексация не запущена");
-            log.warn("Ошибка остановки индексации! {}",responseRequest.getError());
+            log.warn("{}: {}. Ошибка остановки индексации! {}", this.getClass().getName(),
+                                                                this.getClass().getEnclosingMethod().getName(),
+                                                                responseRequest.getError());
             return responseRequest;
         }
         stopIndexing.set(true);
@@ -142,10 +171,13 @@ public class SiteIndexingImpl implements SiteIndexing {
             try {
                 sleep(500);
             } catch (InterruptedException e) {
-                log.warn("Ошибка остановки индексации! {}", e.getMessage());
+                log.warn("{}: {}. Попытка прерывания потока остановки индексации!", this.getClass().getName(),
+                                                                                    this.getClass().getEnclosingMethod().getName());
+                Thread.currentThread().interrupt();
             }
         }
-        log.info("Индексация успешно остановлена пользователем");
+        log.info("{}: {}. Индексация успешно остановлена пользователем", this.getClass().getName(),
+                                                                         this.getClass().getEnclosingMethod().getName());
         return responseRequest;
     }
 
@@ -160,42 +192,47 @@ public class SiteIndexingImpl implements SiteIndexing {
     @Override
     public ResponseMainRequest indexPage (String path)  {
         path = path.substring(path.indexOf("h"));
-        pageLog.info("Получен запрос для индексации отдельной страницы: {}",path);
+        pageLog.info("{}: {}. Получен запрос для индексации отдельной страницы: {}", this.getClass().getName(),
+                                                                                     this.getClass().getEnclosingMethod().getName(),
+                                                                                     path);
         responseRequest = new ResponseMainRequest();
         for (SiteConfig site : allSitesForIndexing.getSites()) {
             if (!connectionUtils.isCheckAffiliationSite(site.getUrl(), path))
                 continue;
-
-            RequestStatus requestStatus = new IndexingPage.IndexingPageBuilding()
-                    .siteRepository(siteRepository)
-                    .pageRepository(pageRepository)
-                    .indexRepository(indexRepository)
-                    .lemmaRepository(lemmaRepository)
-                    .indexingPage().indexPage(site, path);
-
-            if (requestStatus.isStatus()) {
-                responseRequest.setResult(requestStatus.isStatus());
-                pageLog.info("Индексация страницы {} успешно завершена.", path);
-            } else {
-                responseRequest.setError(requestStatus.getError());
+            try {
+                responseRequest = new IndexingPage.IndexingPageBuilding()
+                                                  .siteRepository(siteRepository)
+                                                  .pageRepository(pageRepository)
+                                                  .indexRepository(indexRepository)
+                                                  .lemmaRepository(lemmaRepository)
+                                                  .indexingPage().indexPage(site, path);
+            } catch (IOException ex) {
+                responseRequest.setError(ex.getMessage());
+                pageLog.error("{}: {}. Ошибка индексации отдельной страницы: {}. {}: {}", this.getClass().getName(),
+                                                                                          this.getClass().getEnclosingMethod().getName(),
+                                                                                          path,
+                                                                                          Exception.class.getName(),
+                                                                                          ex.getMessage());
+                return responseRequest;
             }
+            responseRequest.setResult(true);
             return responseRequest;
         }
-        responseRequest.setError("Данная страница находится за пределами сайтов, " +
-                "указанных в конфигурационном файле");
-        pageLog.warn("Ошибка индексации страницы: {} {}",path, responseRequest.getError());
+        responseRequest.setError("Страница находится за пределами сайтов!");
+        pageLog.info("{}: {}. {}", this.getClass().getName(),
+                                   this.getClass().getEnclosingMethod().getName(),
+                                   responseRequest.getError());
         return responseRequest;
     }
 
     @Override
     public SearchRequest search(String searchText, String site, int offset, int limit) {
 
-        SearchRequest searchRequest = new SearchPage.SearchPageBuilding(searchText, site).siteRepository(siteRepository)
+        return new SearchPage.SearchPageBuilding(searchText, site).siteRepository(siteRepository)
                 .pageRepository(pageRepository)
                 .indexRepository(indexRepository)
                 .lemmaRepository(lemmaRepository)
                 .searchPage().search(offset, limit);
-        return searchRequest;
 
     }
 }
