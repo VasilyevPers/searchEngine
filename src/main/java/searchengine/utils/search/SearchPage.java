@@ -1,8 +1,8 @@
 package searchengine.utils.search;
 
 import org.jsoup.Jsoup;
-import searchengine.dto.searchRequest.FoundPage;
-import searchengine.dto.searchRequest.SearchRequest;
+import searchengine.dto.searchResponse.FoundPage;
+import searchengine.dto.searchResponse.SearchResponseTrue;
 import searchengine.model.Lemma;
 import searchengine.model.Page;
 import searchengine.model.Site;
@@ -40,8 +40,8 @@ public class SearchPage {
         this.rareLemma = site == null ? searchAllLemma() : searchLemmaInSite();
     }
         
-    public SearchRequest search(int offset, int limit) {
-        SearchRequest searchRequest = new SearchRequest();
+    public SearchResponseTrue search(int offset, int limit) {
+        SearchResponseTrue searchRequest = new SearchResponseTrue();
         if (lemmaList.isEmpty()) return searchRequest;
         searchPage.setIndexRepository(indexRepository);
         searchPage.setLemmaList(lemmaList);
@@ -70,22 +70,22 @@ public class SearchPage {
         searchPage.setSiteId(siteInBD.getId());
         List<Lemma> lemmaForSearch = new ArrayList<>();
         for (String l : lemmaList) {
-            try {
-                lemmaForSearch.add(lemmaRepository.findByLemmaAndSiteId(l, siteInBD.getId()));
-            }catch (NullPointerException e) {
-                return null;
-            }
+            lemmaForSearch.add(lemmaRepository.findByLemmaAndSiteId(l, siteInBD.getId()));
         }
-        lemmaForSearch.sort(Comparator.comparing(Lemma::getFrequency));
+        try {
+            lemmaForSearch.sort(Comparator.comparing(Lemma::getFrequency));
+        } catch (NullPointerException ex) {
+            return null;
+        }
         return lemmaForSearch.get(0).getLemma();
     }
 
     private String searchAllLemma() {
         Map<String, Integer> lemmaForSearch = new HashMap<>();
         for (String l : lemmaList) {
-            List<Lemma> lemmaList = new ArrayList<>(lemmaRepository.findAllByLemma(l));
+            List<Lemma> allLemmaList = new ArrayList<>(lemmaRepository.findAllByLemma(l));
             try {
-                lemmaList.forEach(lemma -> {
+                allLemmaList.forEach(lemma -> {
                     if (lemmaForSearch.containsKey(lemma.getLemma())) {
                         lemmaForSearch.put(lemma.getLemma(), lemmaForSearch.get(lemma.getLemma()) + lemma.getFrequency());
                     }
@@ -95,6 +95,7 @@ public class SearchPage {
                 return null;
             }
         }
+        if(lemmaForSearch.isEmpty()) return null;
         return lemmaForSearch.entrySet()
                 .stream()
                 .max(Map.Entry.comparingByValue())

@@ -1,4 +1,4 @@
-package searchengine.dto.searchRequest;
+package searchengine.dto.searchResponse;
 
 import lombok.Getter;
 import lombok.Setter;

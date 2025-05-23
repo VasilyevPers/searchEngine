@@ -6,7 +6,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import searchengine.config.SiteConfig;
 import searchengine.dto.responseRequest.ResponseMainRequest;
-import searchengine.dto.searchRequest.SearchRequest;
+import searchengine.dto.searchResponse.SearchResponseFalse;
+import searchengine.dto.searchResponse.SearchResponseTrue;
 import searchengine.model.*;
 import searchengine.config.SitesList;
 import searchengine.repositories.IndexRepository;
@@ -236,8 +237,12 @@ public class SiteIndexingImpl implements SiteIndexing {
     }
 
     @Override
-    public SearchRequest search(String searchText, String site, int offset, int limit) {
-
+    public Object search(String searchText, String site, int offset, int limit) {
+        if(searchText.isBlank()) {
+            SearchResponseFalse responseFalse = new SearchResponseFalse();
+            responseFalse.setError("Задан пустой поисковой запрос");
+            return responseFalse;
+        }
         return new SearchPage.SearchPageBuilding(searchText, site).siteRepository(siteRepository)
                 .pageRepository(pageRepository)
                 .indexRepository(indexRepository)
