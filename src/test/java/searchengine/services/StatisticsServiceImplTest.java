@@ -33,23 +33,23 @@ public class StatisticsServiceImplTest {
     @Autowired
     private LemmaRepository lemmaRepository;
     private TestRestTemplate template = new TestRestTemplate();
-    public static PostgreSQLContainer<?> mysql = new PostgreSQLContainer<>("postgres");
+    public static PostgreSQLContainer<?> pgsql = new PostgreSQLContainer<>("postgres");
 
     @BeforeAll
     public static void beforeAll () {
-        mysql.start();
+        pgsql.start();
     }
 
     @AfterAll
     public static void afterAll () {
-        mysql.stop();
+        pgsql.stop();
     }
 
     @DynamicPropertySource
     public static void configureProperties (DynamicPropertyRegistry registry) {
-        registry.add("spring.datasource.url", mysql::getJdbcUrl);
-        registry.add("spring.datasource.username", mysql::getUsername);
-        registry.add("spring.datasource.password", mysql::getPassword);
+        registry.add("spring.datasource.url", pgsql::getJdbcUrl);
+        registry.add("spring.datasource.username", pgsql::getUsername);
+        registry.add("spring.datasource.password", pgsql::getPassword);
     }
 
     @BeforeEach

@@ -11,14 +11,14 @@ import java.util.List;
 @Repository
 public interface IndexRepository extends JpaRepository<Index, Integer> {
     @Query(value = "SELECT i.* " +
-            "FROM `index` i " +
+            "FROM index i " +
             "JOIN lemmas l ON i.lemma_id = l.id " +
             "WHERE l.lemma = :lemma",
     nativeQuery = true)
     List<Index> findByLemma (@Param(value = "lemma") String lemma);
 
     @Query(value = "SELECT i.* " +
-            "FROM `index` i " +
+            "FROM index i " +
             "JOIN lemmas l ON i.lemma_id = l.id " +
             "WHERE l.lemma = :lemma AND l.site_id = :siteId",
             nativeQuery = true)

@@ -2,7 +2,6 @@ package searchengine.utils.indexing;
 
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import searchengine.utils.indexing.ConnectionUtils;
 
 import java.util.*;
 
@@ -53,7 +52,12 @@ public class ConnectionUtilsTest {
     @DisplayName("Test request response code where site is normal")
     public void givenNormalSite_whenRequestResponseCode_thenCode200 () {
         String testSite = "https://skillbox.ru/";
-        int numberCode = connectionUtils.requestResponseCode(testSite);
+        int numberCode;
+        try {
+            numberCode = connectionUtils.requestResponseCode(testSite);
+        } catch (ConnectionUtils.PageConnectException e) {
+            numberCode = 0;
+        }
 
         assertTrue(numberCode >= 200 && numberCode < 300);
     }
@@ -62,7 +66,12 @@ public class ConnectionUtilsTest {
     @DisplayName("Test request response code where site is unavailable")
     public void givenUnavailableSite_whenRequestResponseCode_thenErrorCode () {
         String testSite = "https://www.skillboxx.ru";
-        int numberCode = connectionUtils.requestResponseCode(testSite);
+        int numberCode;
+        try {
+            numberCode = connectionUtils.requestResponseCode(testSite);
+        } catch (ConnectionUtils.PageConnectException e) {
+            numberCode = 0;
+        }
         assertEquals(0,numberCode);
     }
 

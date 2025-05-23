@@ -6,7 +6,6 @@ import org.junit.jupiter.api.Test;
 import searchengine.model.Index;
 import searchengine.model.Lemma;
 import searchengine.model.Page;
-import searchengine.utils.lemmatization.CreateLemmaAndIndex;
 
 import java.io.IOException;
 import java.util.ArrayList;
