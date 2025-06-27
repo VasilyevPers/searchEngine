@@ -4,7 +4,6 @@ import searchengine.model.Index;
 import searchengine.model.Lemma;
 import searchengine.repositories.LemmaRepository;
 
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;

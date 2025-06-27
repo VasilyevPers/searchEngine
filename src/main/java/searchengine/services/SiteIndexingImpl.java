@@ -7,7 +7,6 @@ import org.springframework.stereotype.Service;
 import searchengine.config.SiteConfig;
 import searchengine.dto.responseRequest.ResponseMainRequest;
 import searchengine.dto.searchResponse.SearchResponseFalse;
-import searchengine.dto.searchResponse.SearchResponseTrue;
 import searchengine.model.*;
 import searchengine.config.SitesList;
 import searchengine.repositories.IndexRepository;

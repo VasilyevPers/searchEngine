@@ -1,8 +1,6 @@
 services:
   web:
-    image: search-engine
-    build:
-      dockerfile: Dockerfile
+    image: pershayer/search_engine:test
     ports:
       - "8080:8080"
     depends_on:
